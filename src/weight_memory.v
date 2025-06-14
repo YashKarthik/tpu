@@ -11,6 +11,7 @@ module weight_memory(
 );
 
 reg [7:0] mem [7:0];
+integer i;
 
 always @(posedge clk) begin
     if (rst) begin
@@ -22,10 +23,10 @@ always @(posedge clk) begin
         w3 <= 8'b0;
         w4 <= 8'b0;
     end
-    w1 <= memory[addr];
-    w2 <= memory[addr+1];
-    w3 <= memory[addr+2];
-    w4 <= memory[addr+3];
+    w1 <= mem[addr];
+    w2 <= mem[addr+1];
+    w3 <= mem[addr+2];
+    w4 <= mem[addr+3];
 end
 
 endmodule
