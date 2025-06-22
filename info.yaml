@@ -46,14 +46,14 @@ pinout:
   uo[7]: "OUT7"
 
   # Bidirectional pins
-  uio[0]: "IO0"
-  uio[1]: "IO1"
-  uio[2]: "IO2"
-  uio[3]: "IO3"
-  uio[4]: "IO4"
-  uio[5]: "IO5"
-  uio[6]: "IO6"
-  uio[7]: "IO7"
+  uio[0]: "LOAD_EN (input)"
+  uio[1]: "LOAD_SEL_AB (input)"
+  uio[2]: "LOAD_SEL_INDEX[0] (input)"
+  uio[3]: "LOAD_SEL_INDEX[1] (output)"
+  uio[4]: "OUTPUT_EN (input)"
+  uio[5]: "OUTPUT_SEL[0] (input)"
+  uio[6]: "OUTPUT_SEL[1] (input)"
+  uio[7]: "DONE (output)"
 
 # Do not change!
 yaml_version: 6
