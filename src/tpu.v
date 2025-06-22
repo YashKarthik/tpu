@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Your Name
+ * Copyright (c) 2025 William
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,17 +11,43 @@ module tt_um_tpu (
     input  wire [7:0] uio_in,   // IOs: Input path
     output wire [7:0] uio_out,  // IOs: Output path
     output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
+
     input  wire       ena,      // always 1 when the design is powered, so you can ignore it
     input  wire       clk,      // clock
     input  wire       rst_n     // reset_n - low to reset
 );
 
-  // All output pins must be assigned. If not used, assign to 0.
-  assign uo_out  = ui_in + uio_in;  // Example: ou_out is the sum of ui_in and uio_in
-  assign uio_out = 0;
-  assign uio_oe  = 0;
+  wire        load_en          = io_in[0];
+  wire        load_sel_ab      = io_in[1]; // selects which matrix, 0 = A, 1 = B 
+  wire [1:0]  load_sel_index   = io_in[3:2]; // selects which element of matrix is being loaded 
+  wire        output_en        = io_in[4];
+  wire [1:0]  output_sel       = io_in[6:5]; // selects which element of C is being output
+  wire        done;
+  
+  wire [7:0]  c_out[0:3]; // output matrix, 4 x 1 byte
+
+  logic [7:0] a_matrix[0:3];
+  logic [7:0] b_matrix[0:3];
+
+  controller ctrl (
+      .clk(clk),
+      .load_en(load_en),
+      .load_sel_ab(load_sel_ab),
+      .load_index(load_sel_index),
+      .in_data(in),
+      .a_matrix(a_matrix),
+      .b_matrix(b_matrix),
+      .output_en(output_en),
+      .output_sel(output_sel),
+      .c_matrix(c_out),
+      .out_data(out),
+      .done(done)
+  );
+
+  assign uio_out = {done, 7'b0};
+  assign uio_oe  = 8'b10000000; // Only driving io_out[7]
 
   // List all unused inputs to prevent warnings
-  wire _unused = &{ena, clk, rst_n, 1'b0};
+  wire _unused = &{ena};
 
-endmodule
+endmodule 
