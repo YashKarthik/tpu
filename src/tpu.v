@@ -34,7 +34,7 @@ module tt_um_tpu (
       .load_en(load_en),
       .load_sel_ab(load_sel_ab),
       .load_index(load_sel_index),
-      .in_data(in),
+      .in_data(ui_in),
       .a_matrix(a_matrix),
       .b_matrix(b_matrix),
       .output_en(output_en),
