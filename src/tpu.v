@@ -17,11 +17,11 @@ module tt_um_tpu (
     input  wire       rst_n     // reset_n - low to reset
 );
 
-  wire        load_en          = io_in[0];
-  wire        load_sel_ab      = io_in[1]; // selects which matrix, 0 = A, 1 = B 
-  wire [1:0]  load_sel_index   = io_in[3:2]; // selects which element of matrix is being loaded 
-  wire        output_en        = io_in[4];
-  wire [1:0]  output_sel       = io_in[6:5]; // selects which element of C is being output
+  wire        load_en          = uio_in[0];
+  wire        load_sel_ab      = uio_in[1]; // selects which matrix, 0 = A, 1 = B 
+  wire [1:0]  load_sel_index   = uio_in[3:2]; // selects which element of matrix is being loaded 
+  wire        output_en        = uio_in[4];
+  wire [1:0]  output_sel       = uio_in[6:5]; // selects which element of C is being output
   wire        done;
   
   wire [7:0]  c_out[0:3]; // output matrix, 4 x 1 byte
@@ -40,12 +40,13 @@ module tt_um_tpu (
       .output_en(output_en),
       .output_sel(output_sel),
       .c_matrix(c_out),
-      .out_data(out),
+      .out_data(uo_out),
       .done(done)
   );
 
-  assign uio_out = {done, 7'b0};
-  assign uio_oe  = 8'b10000000; // Only driving io_out[7]
+  // Output data already set in controller??
+  assign uio_out = {7'b0, done};
+  assign uio_oe  = 8'b00000001; // Only driving io_out[7]
 
   // List all unused inputs to prevent warnings
   wire _unused = &{ena};
