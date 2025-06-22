@@ -4,13 +4,18 @@ module mmu (
     input clk,
     input rst,
 
-    input [7:0] a_in [1:0],   // a_in[0], a_in[1]: input row of matrix A
-    input [7:0] b_in [1:0],   // b_in[0], b_in[1]: input column of matrix B
+    input wire load_e, // on whether to load the weights or not
+    input wire out_e, // on whether to execute the matrix multiplier
+
+    // input words are 1 byte each
+    input [7:0] a_in [1:0],   // a_in[0], a_in[1]: input row of weight matrix
+    input [7:0] b_in [1:0],   // b_in[0], b_in[1]: input column of input matrix
 
     input valid_in,
     output logic valid_out,
 
-    output [15:0] c_out [1:0][1:0] // output 2x2 matrix C
+    // each element is 1 byte, total of 32 bits
+    output [7:0] c_out [1:0][1:0] // accumulator
 );
 
     // Internal registers for each PE
@@ -64,10 +69,10 @@ module mmu (
         end
     end
 
-    // Assign outputs when valid
-    assign c_out[0][0] = acc[0][0];
-    assign c_out[0][1] = acc[0][1];
-    assign c_out[1][0] = acc[1][0];
-    assign c_out[1][1] = acc[1][1];
+    // Assign outputs when valid (as in execution requested)
+    assign c_out[0][0] = load_e ? acc[0][0] : 8'b0;
+    assign c_out[0][1] = load_e ? acc[0][1] : 8'b0;
+    assign c_out[1][0] = load_e ? acc[1][0] : 8'b0;
+    assign c_out[1][1] = load_e ? acc[1][1] : 8'b0;
 
 endmodule
