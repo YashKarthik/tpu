@@ -20,9 +20,9 @@ module controller (
     logic started;
     logic [3:0] a_loaded, b_loaded;
 
-    systolic_array array_inst (
+    mmu array_inst (
         .clk(clk),
-        .start(start),
+        .rst(start),
         .A(a_matrix),
         .B(b_matrix),
         .C(c_matrix),
