@@ -1,78 +1,66 @@
 // Matrix Multiplier Unit for TPU
 // Contains core systolic array units
+// Does not set project outputs, only outputs staggered elements
 module mmu (
-    input clk,
-    input rst,
-
-    input wire load_e, // on whether to load the weights or not
-    input wire out_e, // on whether to execute the matrix multiplier
-
-    // input words are 1 byte each
-    input [7:0] a_in [1:0],   // a_in[0], a_in[1]: input row of weight matrix
-    input [7:0] b_in [1:0],   // b_in[0], b_in[1]: input column of input matrix
-
-    input valid_in,
-    output logic valid_out,
-
-    // each element is 1 byte, total of 32 bits
-    output [7:0] c_out [1:0][1:0] // accumulator
+    input  wire        clk,
+    input  wire        rst,
+    input  wire [7:0]  A [0:3],
+    input  wire [7:0]  B [0:3],
+    output logic [7:0] C [0:3],
+    output logic       done
 );
 
-    // Internal registers for each PE
-    logic [7:0] a_reg [1:0][1:0];
-    logic [7:0] b_reg [1:0][1:0];
-    logic [15:0] acc [1:0][1:0];
+    typedef struct packed {
+        logic [7:0] a;
+        logic [7:0] b;
+        logic [15:0] acc;
+    } PEState; // state of each PE
 
-    // Valid signal delay pipeline
-    logic valid_pipe [3:0];
+    PEState pe00, pe01, pe10, pe11;
 
-    always_ff @(posedge clk or posedge rst) begin
+    logic [1:0] cycle;
+
+    always_ff @(posedge clk) begin
         if (rst) begin
-            // Reset all accumulators and valid pipeline
-            for (int i = 0; i < 2; i++) begin
-                for (int j = 0; j < 2; j++) begin
-                    a_reg[i][j] <= 0;
-                    b_reg[i][j] <= 0;
-                    acc[i][j] <= 0;
-                end
-            end
-            for (int i = 0; i < 4; i++) valid_pipe[i] <= 0;
+            cycle <= 0;
+
+            pe00.a <= A[0];
+            pe00.b <= B[0];
+            pe00.acc <= 0;
+
+            pe01.b <= B[1];
+            pe01.acc <= 0;
+
+            pe10.a <= A[2];
+            pe10.acc <= 0;
+
+            pe11.acc <= 0;
         end else begin
-            // First row: Load a_in
-            a_reg[0][0] <= a_in[0];
-            a_reg[0][1] <= a_reg[0][0]; // shift right
+            cycle <= cycle + 1;
 
-            // Second row: shift down
-            a_reg[1][0] <= a_reg[0][0];
-            a_reg[1][1] <= a_reg[0][1];
-
-            // First column: Load b_in
-            b_reg[0][0] <= b_in[0];
-            b_reg[1][0] <= b_reg[0][0]; // shift down
-
-            // Second column: shift right
-            b_reg[0][1] <= b_in[1];
-            b_reg[1][1] <= b_reg[0][1];
-
-            // Multiply-Accumulate
-            for (int i = 0; i < 2; i++) begin
-                for (int j = 0; j < 2; j++) begin
-                    acc[i][j] <= acc[i][j] + a_reg[i][j] * b_reg[i][j];
+            case (cycle)
+                2'd0: begin
+                    pe00.acc <= pe00.acc + pe00.a * pe00.b;
+                    pe01.a <= pe00.a;
+                    pe10.b <= pe00.b;
                 end
-            end
-
-            // Valid signal propagation
-            valid_pipe[0] <= valid_in;
-            for (int i = 1; i < 4; i++) valid_pipe[i] <= valid_pipe[i-1];
-
-            valid_out <= valid_pipe[3];
+                2'd1: begin
+                    pe01.acc <= pe01.acc + pe01.a * pe01.b;
+                    pe11.a <= pe10.a;
+                    pe11.b <= pe01.b;
+                    pe10.acc <= pe10.acc + pe10.a * pe10.b;
+                end
+                2'd2: begin
+                    pe11.acc <= pe11.acc + pe11.a * pe11.b;
+                    C[0] <= pe00.acc[7:0];
+                    C[1] <= pe01.acc[7:0];
+                    C[2] <= pe10.acc[7:0];
+                    C[3] <= pe11.acc[7:0];
+                    done <= 1;
+                end
+                default: done <= 0;
+            endcase
         end
     end
-
-    // Assign outputs when valid (as in execution requested)
-    assign c_out[0][0] = load_e ? acc[0][0] : 8'b0;
-    assign c_out[0][1] = load_e ? acc[0][1] : 8'b0;
-    assign c_out[1][0] = load_e ? acc[1][0] : 8'b0;
-    assign c_out[1][1] = load_e ? acc[1][1] : 8'b0;
 
 endmodule
