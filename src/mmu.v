@@ -20,6 +20,10 @@ module mmu (
 
     logic [1:0] cycle;
 
+    wire [7:0] A [0:3];
+    wire [7:0] B [0:3];
+    logic [7:0] C [0:3];
+
     assign {A[3], A[2], A[1], A[0]} = A_flat;
     assign {B[3], B[2], B[1], B[0]} = B_flat;
     assign C_flat = {C[3], C[2], C[1], C[0]};
