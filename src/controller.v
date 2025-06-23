@@ -16,7 +16,7 @@ module controller (
     logic start;
     logic started;
 
-    logic [7:0] c_matrix [0:3],
+    logic [7:0] c_matrix [0:3];
 
     logic [7:0] a_matrix [0:3]; // the inputs themselves
     logic [7:0] b_matrix [0:3];
