@@ -24,22 +24,15 @@ module tt_um_tpu (
   wire [1:0]  output_sel       = uio_in[6:5]; // selects which element of C is being output
   wire        done;
   
-  wire [7:0]  c_out[0:3]; // output matrix, 4 x 1 byte
-
-  logic [7:0] a_matrix[0:3];
-  logic [7:0] b_matrix[0:3];
-
   controller ctrl (
       .clk(clk),
+      .rst(~rst_n),
       .load_en(load_en),
       .load_sel_ab(load_sel_ab),
       .load_index(load_sel_index),
       .in_data(ui_in),
-      .a_matrix(a_matrix),
-      .b_matrix(b_matrix),
       .output_en(output_en),
       .output_sel(output_sel),
-      .c_matrix(c_out),
       .out_data(uo_out),
       .done(done)
   );
