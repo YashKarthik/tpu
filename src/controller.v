@@ -25,12 +25,16 @@ module controller (
 
     logic [3:0] a_loaded, b_loaded; // confirming loads of matrices for safe multiplication
 
+    assign A_flat = {a_matrix[3], a_matrix[2], a_matrix[1], a_matrix[0]};
+    assign B_flat = {b_matrix[3], b_matrix[2], b_matrix[1], b_matrix[0]};
+    assign {c_matrix[3], c_matrix[2], c_matrix[1], c_matrix[0]} = C_flat;
+
     mmu array_inst (
         .clk(clk),
         .rst(~start),
-        .A(a_matrix),
-        .B(b_matrix),
-        .C(c_matrix),
+        .A_flat(A_flat),
+        .B_flat(B_flat),
+        .C_flat(C_flat),
         .done(done)
     );
 
