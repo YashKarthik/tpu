@@ -38,8 +38,8 @@ module tt_um_tpu (
   );
 
   // Output data already set in controller??
-  assign uio_out = {7'b0, done};
-  assign uio_oe  = 8'b00000001; // Only driving io_out[7]
+  assign uio_out = {done, 7'b0};
+  assign uio_oe  = 8'b10000000; // Only driving io_out[7]
 
   // List all unused inputs to prevent warnings
   wire _unused = &{ena, uio_in[7]};
