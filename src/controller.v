@@ -13,8 +13,8 @@ module controller (
     output wire        done
 );
 
-    logic start;
-    logic started;
+    reg start;
+    reg started;
 
     logic [7:0] c_matrix [0:3];
 
@@ -23,40 +23,40 @@ module controller (
 
     integer i;
 
-    logic [3:0] a_loaded, b_loaded; // confirming loads of matrices for safe multiplication
+    reg [3:0] a_loaded, b_loaded; // confirming loads of matrices for safe multiplication
     
-    logic [31:0] A_flat, B_flat, C_flat;
+    reg [31:0] A_flat, B_flat;
+    wire [31:0] c_matrix_flat;
 
-    assign A_flat = {a_matrix[3], a_matrix[2], a_matrix[1], a_matrix[0]};
-    assign B_flat = {b_matrix[3], b_matrix[2], b_matrix[1], b_matrix[0]};
-    assign {c_matrix[3], c_matrix[2], c_matrix[1], c_matrix[0]} = C_flat;
+    wire [7:0] c_matrix [0:3];
+    assign c_matrix[0] = c_matrix_flat[7:0];
+    assign c_matrix[1] = c_matrix_flat[15:8];
+    assign c_matrix[2] = c_matrix_flat[23:16];
+    assign c_matrix[3] = c_matrix_flat[31:24];
 
     mmu array_inst (
         .clk(clk),
         .rst(~start),
         .A_flat(A_flat),
         .B_flat(B_flat),
-        .C_flat(C_flat),
+        .C_flat(c_matrix_flat),
         .done(done)
     );
 
     always_ff @ (posedge clk) begin
         if (rst) begin
-            for (i = 0; i < 4; i++) begin
-                a_matrix[i] <= 8'b0;
-                b_matrix[i] <= 8'b0;
-                c_matrix[i] <= 8'b0;
-            end
+            A_flat <= 32'b0;
+            A_flat <= 32'b0;
             a_loaded <= 4'b0;
             b_loaded <= 4'b0;
             start <= 0;
             started <= 0;
         end else if (load_en) begin
             if(!load_sel_ab) begin
-                a_matrix[load_index] <= in_data;
+                A_flat[8*load_index +: 8] <= in_data;
                 a_loaded[load_index] <= 1;
             end else begin
-                b_matrix[load_index] <= in_data;
+                B_flat[8*load_index +: 8] <= in_data;
                 b_loaded[load_index] <= 1;
             end
         end
