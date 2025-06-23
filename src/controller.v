@@ -16,11 +16,6 @@ module controller (
     reg start;
     reg started;
 
-    logic [7:0] c_matrix [0:3];
-
-    logic [7:0] a_matrix [0:3]; // the inputs themselves
-    logic [7:0] b_matrix [0:3];
-
     integer i;
 
     reg [3:0] a_loaded, b_loaded; // confirming loads of matrices for safe multiplication
@@ -43,7 +38,7 @@ module controller (
         .done(done)
     );
 
-    always_ff @ (posedge clk) begin
+    always @ (posedge clk) begin
         if (rst) begin
             A_flat <= 32'b0;
             A_flat <= 32'b0;
