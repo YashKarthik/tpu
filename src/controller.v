@@ -24,6 +24,8 @@ module controller (
     integer i;
 
     logic [3:0] a_loaded, b_loaded; // confirming loads of matrices for safe multiplication
+    
+    logic [31:0] A_flat, B_flat, C_flat;
 
     assign A_flat = {a_matrix[3], a_matrix[2], a_matrix[1], a_matrix[0]};
     assign B_flat = {b_matrix[3], b_matrix[2], b_matrix[1], b_matrix[0]};
