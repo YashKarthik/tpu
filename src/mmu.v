@@ -20,9 +20,9 @@ module mmu (
     assign B[2] = B_flat[23:16];
     assign B[3] = B_flat[31:24];
 
-    reg [15:0] acc00, acc01, acc10, acc11;
-    reg [7:0]  a_pipe_01, a_pipe_11;
-    reg [7:0]  b_pipe_10, b_pipe_11;
+    reg [7:0] acc00, acc01, acc10, acc11;
+    reg [7:0] a_pipe_01, a_pipe_11;
+    reg [7:0] b_pipe_10, b_pipe_11;
 
     reg [1:0] cycle;
 
@@ -40,23 +40,26 @@ module mmu (
 
             case (cycle)
                 2'd0: begin
-                    acc00 <= acc00 + A[0] * B[0];
+                    acc00 <= A[0] * B[0];
                     a_pipe_01 <= A[0];
                     b_pipe_10 <= B[0];
                 end
                 2'd1: begin
-                    acc01 <= acc01 + a_pipe_01 * B[1];
-                    acc10 <= acc10 + A[2] * b_pipe_10;
+                    acc01 <= a_pipe_01 * B[1];
+                    acc10 <= A[2] * b_pipe_10;
                     a_pipe_11 <= A[2];
                     b_pipe_11 <= B[1];
                 end
                 2'd2: begin
-                    acc11 <= acc11 + a_pipe_11 * b_pipe_11;
-                    C_flat[7:0]   <= acc00[7:0];
-                    C_flat[15:8]  <= acc01[7:0];
-                    C_flat[23:16] <= acc10[7:0];
-                    C_flat[31:24] <= acc11[7:0];
+                    acc11 <= a_pipe_11 * b_pipe_11;
+                    C_flat[7:0]   <= acc00;
+                    C_flat[15:8]  <= acc01;
+                    C_flat[23:16] <= acc10;
+                    C_flat[31:24] <= acc11;
                     done <= 1;
+                end
+                default: begin
+                    done <= 0;
                 end
             endcase
         end
