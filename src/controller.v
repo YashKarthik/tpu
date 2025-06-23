@@ -16,8 +16,6 @@ module controller (
     reg start;
     reg started;
 
-    integer i;
-
     reg [3:0] a_loaded, b_loaded; // confirming loads of matrices for safe multiplication
     
     reg [31:0] A_flat, B_flat;
