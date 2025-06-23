@@ -42,6 +42,6 @@ module tt_um_tpu (
   assign uio_oe  = 8'b00000001; // Only driving io_out[7]
 
   // List all unused inputs to prevent warnings
-  wire _unused = &{ena};
+  wire _unused = &{ena, uio_in[7]};
 
 endmodule 
