@@ -30,10 +30,10 @@ always @(posedge clk) begin
         intermediate_memory[addr] <= rpi_weights;
     end
 
-    weight_1 <= intermediate_memory[addr];
-    weight_2 <= intermediate_memory[addr + 1];
-    weight_3 <= intermediate_memory[addr + 2];
-    weight_4 <= intermediate_memory[addr + 3];
+    weight_1 <= intermediate_memory[0];
+    weight_2 <= intermediate_memory[1];
+    weight_3 <= intermediate_memory[2];
+    weight_4 <= intermediate_memory[3];
 end
 
 endmodule
