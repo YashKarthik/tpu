@@ -3,72 +3,109 @@
 module control_unit (
   input wire clk,
   input wire rst_n,
-  input wire fetch_instr,
-  input wire [7:0] instr, 
-  input wire [3:0] dma_address,
+  input wire start,
+  input wire [3:0] instr, 
 
-  output reg [4:0] base_address,
-  output reg load_input,
-  output reg load_weight,
-  output reg valid,
-  output reg store_res,
-  output reg capture_res
+  output wire host_req_mat,
+  output wire host_send_mat,
+  output wire load_mmu,
+  output wire wm_load_mat,
+  output wire [2:0] wm_addr,
 );
+  
+  //localparam [3:0] NO_OP          = 3'b000;
+  //localparam [3:0] LOAD_WEIGHT    = 3'b001;
+  //localparam [3:0] LOAD_INPUTS    = 3'b010;
+  //localparam [3:0] COMPUTE        = 3'b100;
+  //localparam [3:0] STORE_RES      = 3'b101;
+  //localparam [3:0] CAPTURE_RES    = 3'b110;
+  //localparam [3:0] CLEAR_ACC      = 3'b111;
 
-  localparam [7:0] NO_OP = 8'b000_00000;
-  localparam [7:0] LOAD_WEIGHT = 8'b001_00000;
-  localparam [7:0] LOAD_INPUTS = 8'b010_00000;
-  localparam [7:0] SET_BASE_ADDR = 8'b011_00000;
-  localparam [7:0] COMPUTE = 8'b100_00000;
-  localparam [7:0] STORE_RES = 8'b101_00000;
-  localparam [7:0] CAPTURE_RES = 8'b110_000000;
-  localparam [7:0] CLEAR_ACC = 8'b111_000000;
-  
-  // Instruction memory, adjust size if needed
-  reg [7:0] instruction_mem [0:9];
-  reg [7:0] instruction_reg;
-  reg [4:0] instruction_pointer;
-  
-  
-  always @(posedge clk) begin 
-    if (fetch_ins) begin
-      instruction_mem[dma_address] <= instr; 
-    end
-  end
+  // TODO: figure out bit widths based on number of states
+  localparam[1:0] S_IDLE          = 2'b00;
+  localparam[1:0] S_LOAD_WEIGHTS  = 2'b01;
+  localparam[1:0] S_LOAD_INPUTS   = 2'b10;
+  localparam[1:0] S_COMPUTE       = 2'b11;
+  localparam[1:0] S_WRITEBACK     = 2'b11;
+
+  reg[1:0] state;
+  reg[2:0] mat_elems_loaded;
+  reg[1:0] compute_cycles;
   
   // combination block
   // use `=` for assignment
   // using always for if-else stuff
-  always @(*) begin
+  //always @(*) begin
+  //  if (!rst_n) begin
+  //    base_address = 0;
+  //    load_weight = 0;
+  //    load_input = 0;
+  //    store = 0;
+  //    ext = 0;
+  //  end else begin
+  //
+  //    // defaut values of signals
+  //
+  //    // state based on instruction
+  //    case (instruction_reg[7:5])
+  //      default: ;
+  //    endcase
+  //  end
+  //end
+  
+  
+  // state machine
+  always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
-      base_address = 0;
-      load_weight = 0;
-      load_input = 0;
-      valid = 0;
-      store = 0;
-      ext = 0;
+      state <= IDLE;
+      load_weigth <= 0;
+
     end else begin
 
-      // defaut values
-      load_weight = 0;
-      load_input = 0;
-      ext = 0;
-      store = 0; 
+      case (state)
+        S_IDLE:
+          if (start) begin
+            state <= state + 1;
+          end else begin
+            state <= state;
+          end
 
-      // ctrl signal based on instruction
-      case (instruction_reg[7:5])
-        SET_BASE_ADDR[7:5] : base_address = instruction_reg[4:0];
-        LOAD_WEIGHT[7:5]   : load_weight  = 1;
-        LOAD_INPUTS[7:5]   : load_input   = 1;
-        COMPUTE[7:5]       : valid        = 1;
-        STORE_RES[7:5]     : store_res    = 1;
-        CAPTURE_RES[7:5]   : capture_res  = 1;
-        default: ;
-      endcase
+          host_req_mat <= 0;
+          wm_load_mat <= 0;
+          wm_addr <= 3'b000;
+          load_mmu <= 0;
+
+        S_LOAD_MATS: begin
+          if (host_req_mat) begin
+            mat_elems_loaded <= mat_elems_loaded + 1;
+          end
+
+          if (mat_elems_loaded == 3'b111 ) begin
+            state <= state + 1;
+          end
+
+          host_req_mat <= 1;
+          wm_load_mat <= 1;
+          wm_addr <= mat_elems_loaded;
+          load_mmu <= 0;
+        end
+
+        S_COMPUTE:
+          host_req_mat <= 0;
+          wm_load_mat <= 0;
+          wm_addr <= 0;
+          load_mmu <= 1;
+
+          if (compute_cycles == 3'b10) begin
+            state <= state + 1;
+          end
+
+          compute_cycles <= compute_cycles + 1;
+
+        S_WRITEBACK:
+          // compute state
+
     end
   end
-
-
-  // state machine
-
+  
 endmodule;
