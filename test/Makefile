@@ -6,9 +6,9 @@ SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
 PROJECT_SOURCES = tpu.sv
-PROJECT_SOURCES += mmu.sv
+PROJECT_SOURCES += systolic2x2.sv
 PROJECT_SOURCES += controller.sv
-PROJECT_SOURCES += pe_cell.sv
+PROJECT_SOURCES += PE.sv
 
 ifneq ($(GATES),yes)
 

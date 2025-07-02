@@ -2,7 +2,7 @@
  * Copyright (c) 2025 William
  * SPDX-License-Identifier: Apache-2.0
  */
-
+ 
 `default_nettype none
 
 module tt_um_tpu (
@@ -41,4 +41,4 @@ module tt_um_tpu (
 
     logic _unused = &{ena, uio_in[7]};
 
-endmodule 
+endmodule
