@@ -16,7 +16,7 @@ module tt_um_tpu (
     input  wire       clk,      // clock
     input  wire       rst_n     // reset_n - low to reset
 );
-
+  
   wire        load_en          = uio_in[0];
   wire        load_sel_ab      = uio_in[1]; // selects which matrix, 0 = A, 1 = B 
   wire [1:0]  load_sel_index   = uio_in[3:2]; // selects which element of matrix is being loaded 
@@ -44,4 +44,5 @@ module tt_um_tpu (
   // List all unused inputs to prevent warnings
   wire _unused = &{ena, uio_in[7]};
 
-endmodule 
+
+endmodule
