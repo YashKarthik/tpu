@@ -1,76 +1,74 @@
-import cocotb
-from cocotb.triggers import RisingEdge, Timer
-from cocotb.binary import BinaryValue
+# SPDX-FileCopyrightText: © 2024 Tiny Tapeout
+# SPDX-License-Identifier: Apache-2.0
 
-# Helper to encode matrix to flat list
-def flatten_matrix(matrix):
-    return [matrix[i][j] for i in range(2) for j in range(2)]
+import cocotb
+from cocotb.clock import Clock
+from cocotb.triggers import ClockCycles, RisingEdge
+
+def encode_ctrl(load_en=0, load_sel_ab=0, load_index=0, output_en=0, output_sel=0):
+    ctrl = 0
+    ctrl |= (load_en & 1) << 0
+    ctrl |= (load_sel_ab & 1) << 1
+    ctrl |= (load_index & 0b11) << 2
+    ctrl |= (output_en & 1) << 4
+    ctrl |= (output_sel & 0b11) << 5
+    return ctrl
 
 @cocotb.test()
-async def test_systolic_array(dut):
-    dut._log.info("Starting TPU systolic array test")
+async def test_project(dut):
+    dut._log.info("Start")
+    clock = Clock(dut.clk, 10, units="us")
+    cocotb.start_soon(clock.start())
 
-    clk = dut.clk
-    rst_n = dut.rst_n
-    ui_in = dut.ui_in
-    uio_in = dut.uio_in
-    uo_out = dut.uo_out
+    # Reset
+    dut.ena.value = 1
+    dut.ui_in.value = 0
+    dut.uio_in.value = 0
+    dut.rst_n.value = 0
+    await ClockCycles(dut.clk, 5)
+    dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 5)
 
-    # Clock generation assumed handled externally or via Makefile/waveform
+    # Load A matrix: [[1, 2], [3, 4]]
+    A_vals = [1, 2, 3, 4]
+    for i, val in enumerate(A_vals):
+        dut.ui_in.value = val
+        dut.uio_in.value = encode_ctrl(load_en=1, load_sel_ab=0, load_index=i)
+        await ClockCycles(dut.clk, 1)
 
-    async def reset():
-        rst_n.value = 0
-        await RisingEdge(clk)
-        await RisingEdge(clk)
-        rst_n.value = 1
-        await RisingEdge(clk)
-        await RisingEdge(clk)
+    # Load B matrix: [[5, 6], [7, 8]]
+    B_vals = [5, 6, 7, 8]
+    for i, val in enumerate(B_vals):
+        dut.ui_in.value = val
+        dut.uio_in.value = encode_ctrl(load_en=1, load_sel_ab=1, load_index=i)
+        await ClockCycles(dut.clk, 1)
 
-    await reset()
+    # Clear control lines after loading
+    dut.ui_in.value = 0
+    dut.uio_in.value = 0
+    await ClockCycles(dut.clk, 1)
 
-    A = [[2, 3],
-         [4, 5]]
-    B = [[6, 7],
-         [8, 9]]
-
-    expected_C = [[2*6 + 3*8, 2*7 + 3*9],
-                  [4*6 + 5*8, 4*7 + 5*9]]
-
-    async def load_matrix(matrix, sel_ab):
-        for i in range(2):
-            for j in range(2):
-                flat_idx = 2 * i + j
-                uio_in.value = BinaryValue(f"000{int(sel_ab)}{flat_idx:02b}1", n_bits=8)
-                ui_in.value = matrix[i][j]
-                await RisingEdge(clk)
-                uio_in.value = 0
-                await RisingEdge(clk)
-
-    # Load A and B
-    await load_matrix(A, sel_ab=0)
-    await load_matrix(B, sel_ab=1)
-
-    # Wait for result
-    uio_in.value = 0b00010000  # output_en=1
-    for _ in range(10):
-        await RisingEdge(clk)
-        if int(dut.uio_out.value) & 0x80:
+    # Wait for 'done' (bit 7 of uio_out to become 1)
+    for _ in range(20):
+        await RisingEdge(dut.clk)
+        dut._log.info(f"uio_out = {dut.uio_out.value.binstr}")
+        if dut.uio_out.value.integer & 0x80:
             break
+    else:
+        raise AssertionError("Timed out waiting for 'done' signal")
 
-    # Read result C
-    results = []
-    for idx in range(4):
-        sel = BinaryValue(f"0{idx:02b}0000", n_bits=8)
-        uio_in.value = sel
-        await RisingEdge(clk)
-        results.append(int(uo_out.value))
+    # Read C matrix results
+    C_expected = [
+        1*5 + 2*7,   # 19
+        1*6 + 2*8,   # 22
+        3*5 + 4*7,   # 43
+        3*6 + 4*8    # 50
+    ]
 
-    # Print result
-    C_actual = [results[0:2], results[2:4]]
-    for i in range(2):
-        for j in range(2):
-            expected = expected_C[i][j] & 0xFF
-            actual = C_actual[i][j]
-            assert actual == expected, f"Mismatch at C[{i}][{j}]: expected {expected}, got {actual}"
+    for i, expected in enumerate(C_expected):
+        dut.uio_in.value = encode_ctrl(output_en=1, output_sel=i)
+        await ClockCycles(dut.clk, 1)
+        actual = dut.uo_out.value.integer
+        assert actual == (expected & 0xFF), f"C[{i}] = {actual}, expected {expected & 0xFF}"
 
-    dut._log.info("Systolic array test passed")
+    dut._log.info("Matrix multiplication passed.")

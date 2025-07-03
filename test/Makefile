@@ -5,10 +5,10 @@
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
-PROJECT_SOURCES = tpu.sv
-PROJECT_SOURCES += systolic2x2.sv
-PROJECT_SOURCES += controller.sv
-PROJECT_SOURCES += PE.sv
+PROJECT_SOURCES = tpu.v
+PROJECT_SOURCES += systolic2x2.v
+PROJECT_SOURCES += controller.v
+PROJECT_SOURCES += PE.v
 
 ifneq ($(GATES),yes)
 
@@ -35,7 +35,7 @@ endif
 COMPILE_ARGS 		+= -I$(SRC_DIR)
 
 # Include the testbench sources:
-VERILOG_SOURCES += $(PWD)/tb.sv
+VERILOG_SOURCES += $(PWD)/tb.v
 TOPLEVEL = tb
 
 # MODULE is the basename of the Python test file
