@@ -25,7 +25,6 @@ module controller (
 
     // Control signals to systolic array
     reg [7:0] a_data0, b_data0, a_data1, b_data1;
-    reg valid_in;
 
     // Outputs from systolic array
     wire [15:0] c00, c01, c10, c11;
@@ -37,12 +36,8 @@ module controller (
         .a_data1(a_data1),
         .b_data0(b_data0),
         .b_data1(b_data1),
-        .valid_in(valid_in),
         .c00(c00), .c01(c01), .c10(c10), .c11(c11)
     );
-
-    // Done signal when all results are captured
-    assign done = (state == OUTPUT && output_count == 4);
 
     // FSM state
     typedef enum logic [1:0] {
@@ -61,7 +56,7 @@ module controller (
             state <= next_state;
     end
 
-    // Output counter
+    // Output and cycle counters
     reg [2:0] cycle_count;
     reg [2:0] output_count;
 
@@ -80,7 +75,7 @@ module controller (
                     B[load_index] <= in_data;
                     b_loaded[load_index] <= 1;
                 end
-            end else if (state == FEED && valid_in) begin
+            end else if (state == FEED) begin
                 cycle_count <= cycle_count + 1;
             end else if (state == OUTPUT && output_en) begin
                 output_count <= output_count + 1;
@@ -93,44 +88,47 @@ module controller (
         next_state = state;
         case (state)
             IDLE: begin
-                if (&a_loaded && &b_loaded)
+                if (&a_loaded && &b_loaded) begin
                     next_state = FEED;
+                end
             end
             FEED: begin
-                if (cycle_count == 4)
+                if (cycle_count == 3) begin
                     next_state = WAIT;
+                end
             end
             WAIT: begin
                 next_state = OUTPUT;
             end
             OUTPUT: begin
-                if (output_count == 4)
+                if (output_count == 3) begin
                     next_state = IDLE;
+                end
             end
         endcase
     end
 
+    // Done signal
+    assign done = (state == OUTPUT && output_count == 4);
+
     // Feeding logic
     always @(*) begin
-        a_data0 = 8'b0;
-        b_data0 = 8'b0;
-        a_data1 = 8'b0;
-        b_data1 = 8'b0;
-        valid_in = 0;
+        a_data0 = 0;
+        a_data1 = 0;
+        b_data0 = 0;
+        b_data1 = 0;
 
         if (state == FEED) begin
-            valid_in = 1;
             case (cycle_count)
-                0: begin a_data0 = A[0]; a_data1 = 0; b_data0 = B[0]; b_data1 = 0; end
-                1: begin a_data0 = A[1]; a_data1 = A[2]; b_data0 = B[2]; b_data1 = B[1]; end
-                2: begin a_data0 = 0; a_data1 = A[3]; b_data0 = 0; b_data1 = B[3]; end
-                3: begin valid_in = 1; end
-                default: valid_in = 0;
+                0: begin a_data0 = A[0]; a_data1 = 0;     b_data0 = B[0]; b_data1 = 0; end
+                1: begin a_data0 = A[1]; a_data1 = A[2];  b_data0 = B[2]; b_data1 = B[1]; end
+                2: begin a_data0 = 0;    a_data1 = A[3];  b_data0 = 0;    b_data1 = B[3]; end
+                default: begin end
             endcase
         end
     end
-    
-    // Capture outputs after latency
+
+    // Capture outputs
     always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
             C[0] <= 0; C[1] <= 0; C[2] <= 0; C[3] <= 0;
@@ -146,7 +144,7 @@ module controller (
     always @(*) begin
         out_data_r = 0;
         if (output_en) begin
-            out_data_r = C[output_sel][7:0];  // Lower 8 bits
+            out_data_r = C[output_sel][7:0];
         end
     end
 

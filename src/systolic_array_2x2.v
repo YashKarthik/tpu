@@ -8,7 +8,6 @@ module systolic_array_2x2 #(
     input wire [WIDTH-1:0] a_data1,
     input wire [WIDTH-1:0] b_data0,
     input wire [WIDTH-1:0] b_data1,
-    input wire valid_in,
 
     output wire [2*WIDTH-1:0] c00,
     output wire [2*WIDTH-1:0] c01,
@@ -19,19 +18,13 @@ module systolic_array_2x2 #(
     // Internal signals between PEs
     wire [WIDTH-1:0] a_wire [0:1][0:2];
     wire [WIDTH-1:0] b_wire [0:2][0:1];
-    wire             v_wire [0:2][0:2];
     wire [15:0] c_array [0:1][0:1];
 
     // Input loading at top-left
-    assign a_wire[0][0] = (valid_in) ? a_data0 : 0;
-    assign a_wire[1][0] = (valid_in) ? a_data1 : 0;
-    assign b_wire[0][0] = (valid_in) ? b_data0 : 0;
-    assign b_wire[0][1] = (valid_in) ? b_data1 : 0;
-
-    assign v_wire[0][0] = valid_in;
-    assign v_wire[0][1] = valid_in;
-    assign v_wire[1][0] = valid_in;
-    assign v_wire[1][1] = valid_in;
+    assign a_wire[0][0] = a_data0;
+    assign a_wire[1][0] = a_data1;
+    assign b_wire[0][0] = b_data0;
+    assign b_wire[0][1] = b_data1;
 
     genvar i, j;
     generate
@@ -42,10 +35,8 @@ module systolic_array_2x2 #(
                     .rst(rst),
                     .a_in(a_wire[i][j]),
                     .b_in(b_wire[i][j]),
-                    .valid_in(v_wire[j][i]),
                     .a_out(a_wire[i][j+1]),
                     .b_out(b_wire[i+1][j]),
-                    .valid_out(v_wire[j+1][i+1]),
                     .c_out(c_array[i][j])
                 );
             end

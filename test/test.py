@@ -1,8 +1,6 @@
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, RisingEdge
-from cocotb.result import TestFailure
-
 
 @cocotb.test()
 async def test_project(dut):
@@ -66,4 +64,4 @@ async def test_project(dut):
     for i in range(4):
         assert results[i] == expected[i], f"C[{i//2}][{i%2}] = {results[i]} != expected {expected[i]}"
 
-    dut._log.info("Test passed! All matrix values are correct.")
+    dut._log.info("Test passed!")
