@@ -43,7 +43,6 @@ module controller (
     typedef enum logic [1:0] {
         IDLE,
         FEED,
-        WAIT,
         OUTPUT
     } state_t;
 
@@ -94,11 +93,8 @@ module controller (
             end
             FEED: begin
                 if (cycle_count == 3) begin
-                    next_state = WAIT;
+                    next_state = OUTPUT;
                 end
-            end
-            WAIT: begin
-                next_state = OUTPUT;
             end
             OUTPUT: begin
                 if (output_count == 3) begin
@@ -109,7 +105,7 @@ module controller (
     end
 
     // Done signal
-    assign done = (state == OUTPUT && output_count == 4);
+    assign done = (state == OUTPUT);
 
     // Feeding logic
     always @(*) begin
@@ -132,7 +128,7 @@ module controller (
     always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
             C[0] <= 0; C[1] <= 0; C[2] <= 0; C[3] <= 0;
-        end else if (state == FEED || state == WAIT) begin
+        end else begin
             C[0] <= c00;
             C[1] <= c01;
             C[2] <= c10;
