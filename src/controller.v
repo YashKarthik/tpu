@@ -1,6 +1,7 @@
 module controller (
     input  wire        clk,
     input  wire        rst,
+
     input  wire        load_en,
     input  wire        load_sel_ab,
     input  wire [1:0]  load_index,
@@ -9,62 +10,142 @@ module controller (
     input  wire        output_en,
     input  wire [1:0]  output_sel,
     output wire [7:0]  out_data,
-
     output wire        done
 );
 
-    reg start;
+    // Storage for A and B matrices
+    reg [7:0] A [0:3];
+    reg [7:0] B [0:3];
+    reg [3:0] a_loaded, b_loaded;
 
-    reg [3:0] a_loaded, b_loaded; // confirming loads of matrices for safe multiplication
-    
-    reg [31:0] A_flat, B_flat;
-    wire [31:0] c_matrix_flat;
+    // Output registers
+    reg [15:0] C [0:3];
+    reg [7:0] out_data_r;
+    assign out_data = out_data_r;
 
-    wire [7:0] c_matrix [0:3];
-    assign c_matrix[0] = c_matrix_flat[7:0];
-    assign c_matrix[1] = c_matrix_flat[15:8];
-    assign c_matrix[2] = c_matrix_flat[23:16];
-    assign c_matrix[3] = c_matrix_flat[31:24];
+    // Control signals to systolic array
+    reg [7:0] a_data0, b_data0, a_data1, b_data1;
 
-    mmu systolic_array (
+    // Outputs from systolic array
+    wire [15:0] c00, c01, c10, c11;
+
+    systolic_array_2x2 mmu (
         .clk(clk),
         .rst(rst),
-        .start(start),
-        .A_flat(A_flat),
-        .B_flat(B_flat),
-        .C_flat(c_matrix_flat),
-        .done(done)
+        .a_data0(a_data0),
+        .a_data1(a_data1),
+        .b_data0(b_data0),
+        .b_data1(b_data1),
+        .c00(c00), .c01(c01), .c10(c10), .c11(c11)
     );
 
-    always @ (posedge clk) begin
-        if (rst) begin
-            A_flat <= 32'b0;
-            B_flat <= 32'b0;
-            a_loaded <= 4'b0;
-            b_loaded <= 4'b0;
-            start <= 0;
-        end else if (load_en) begin
-            if(!load_sel_ab) begin
-                A_flat[8*load_index +: 8] <= in_data;
-                a_loaded[load_index] <= 1;
-                $display("Loaded A[%0d] = %0d", load_index, in_data);
-            end else begin
-                B_flat[8*load_index +: 8] <= in_data;
-                b_loaded[load_index] <= 1;
-                $display("Loaded B[%0d] = %0d", load_index, in_data);
-            end
-        end
+    // FSM state
+    typedef enum logic [1:0] {
+        IDLE,
+        FEED,
+        WAIT,
+        OUTPUT
+    } state_t;
 
-        // Start computation once all inputs loaded
-        if (&a_loaded && &b_loaded && !done) begin
-            start <= 1;
-            $display("Start signal triggered");
+    state_t state, next_state;
+
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst)
+            state <= IDLE;
+        else
+            state <= next_state;
+    end
+
+    // Output and cycle counters
+    reg [2:0] cycle_count;
+    reg [2:0] output_count;
+
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            a_loaded <= 0;
+            b_loaded <= 0;
+            cycle_count <= 0;
+            output_count <= 0;
         end else begin
-            $display("Start signal reset");
-            start <= 0;
+            if (load_en && state == IDLE) begin
+                if (!load_sel_ab) begin
+                    A[load_index] <= in_data;
+                    a_loaded[load_index] <= 1;
+                end else begin
+                    B[load_index] <= in_data;
+                    b_loaded[load_index] <= 1;
+                end
+            end else if (state == FEED) begin
+                cycle_count <= cycle_count + 1;
+            end else if (state == OUTPUT && output_en) begin
+                output_count <= output_count + 1;
+            end
         end
     end
 
-    assign out_data = (output_en) ? c_matrix[output_sel] : 8'b0;
-    
+    // FSM transitions
+    always @(*) begin
+        next_state = state;
+        case (state)
+            IDLE: begin
+                if (&a_loaded && &b_loaded) begin
+                    next_state = FEED;
+                end
+            end
+            FEED: begin
+                if (cycle_count == 3) begin
+                    next_state = WAIT;
+                end
+            end
+            WAIT: begin
+                next_state = OUTPUT;
+            end
+            OUTPUT: begin
+                if (output_count == 3) begin
+                    next_state = IDLE;
+                end
+            end
+        endcase
+    end
+
+    // Done signal
+    assign done = (state == OUTPUT && output_count == 4);
+
+    // Feeding logic
+    always @(*) begin
+        a_data0 = 0;
+        a_data1 = 0;
+        b_data0 = 0;
+        b_data1 = 0;
+
+        if (state == FEED) begin
+            case (cycle_count)
+                0: begin a_data0 = A[0]; a_data1 = 0;     b_data0 = B[0]; b_data1 = 0; end
+                1: begin a_data0 = A[1]; a_data1 = A[2];  b_data0 = B[2]; b_data1 = B[1]; end
+                2: begin a_data0 = 0;    a_data1 = A[3];  b_data0 = 0;    b_data1 = B[3]; end
+                default: begin end
+            endcase
+        end
+    end
+
+    // Capture outputs
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            C[0] <= 0; C[1] <= 0; C[2] <= 0; C[3] <= 0;
+        end else if (state == FEED || state == WAIT) begin
+            C[0] <= c00;
+            C[1] <= c01;
+            C[2] <= c10;
+            C[3] <= c11;
+        end
+    end
+
+    // Output MUX
+    always @(*) begin
+        out_data_r = 0;
+        if (output_en) begin
+            out_data_r = C[output_sel][7:0];
+        end
+    end
+
 endmodule
