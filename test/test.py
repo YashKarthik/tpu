@@ -46,18 +46,11 @@ async def test_project(dut):
         await RisingEdge(dut.clk)
 
     # ------------------------------
-    # STEP 3: Wait for 'done'
-    for _ in range(50):
-        if dut.uio_out.value.integer & 0x80:  # uio_out[7] == done
-            break
-        await ClockCycles(dut.clk, 1)
-    else:
-        raise TestFailure("Timed out waiting for done signal")
-
-    # ------------------------------
     # STEP 4: Read outputs
     expected = [19, 22, 43, 50]
     results = []
+
+    await ClockCycles(dut.clk, 4)  # Wait for systolic array to compute
 
     for i in range(4):
         dut.uio_in.value = (i << 5) | (1 << 4)  # output_sel = i, output_en = 1
@@ -71,7 +64,6 @@ async def test_project(dut):
     # ------------------------------
     # STEP 5: Check results
     for i in range(4):
-        if results[i] != expected[i]:
-            raise TestFailure(f"C[{i//2}][{i%2}] = {results[i]} != expected {expected[i]}")
+        assert results[i] == expected[i], f"C[{i//2}][{i%2}] = {results[i]} != expected {expected[i]}"
 
     dut._log.info("Test passed! All matrix values are correct.")

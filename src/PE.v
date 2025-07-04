@@ -21,7 +21,7 @@ module PE #(
             a_out     <= 0;
             b_out     <= 0;
             valid_out <= 0;
-        end else begin
+        end else begin;
             if (valid_in) begin
                 c_out     <= c_out + a_in * b_in;
                 a_out     <= a_in;

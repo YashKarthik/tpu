@@ -24,8 +24,7 @@ module controller (
     assign out_data = out_data_r;
 
     // Control signals to systolic array
-    reg [7:0] a_data, b_data;
-    reg [1:0] a_row_idx, b_col_idx;
+    reg [7:0] a_data0, b_data0, a_data1, b_data1;
     reg valid_in;
 
     // Outputs from systolic array
@@ -34,10 +33,10 @@ module controller (
     systolic_array_2x2 mmu (
         .clk(clk),
         .rst(rst),
-        .a_data(a_data),
-        .b_data(b_data),
-        .a_row_idx(a_row_idx),
-        .b_col_idx(b_col_idx),
+        .a_data0(a_data0),
+        .a_data1(a_data1),
+        .b_data0(b_data0),
+        .b_data1(b_data1),
         .valid_in(valid_in),
         .c00(c00), .c01(c01), .c10(c10), .c11(c11)
     );
@@ -90,7 +89,7 @@ module controller (
     end
 
     // FSM transitions
-    always_comb begin
+    always @(*) begin
         next_state = state;
         case (state)
             IDLE: begin
@@ -112,30 +111,30 @@ module controller (
     end
 
     // Feeding logic
-    always_comb begin
-        a_data = 0;
-        b_data = 0;
-        a_row_idx = 0;
-        b_col_idx = 0;
+    always @(*) begin
+        a_data0 = 8'b0;
+        b_data0 = 8'b0;
+        a_data1 = 8'b0;
+        b_data1 = 8'b0;
         valid_in = 0;
 
         if (state == FEED) begin
-            $display("Feeding stuff");
             valid_in = 1;
             case (cycle_count)
-                0: begin a_data = A[0]; a_row_idx = 0; b_data = B[0]; b_col_idx = 0; end
-                1: begin a_data = A[1]; a_row_idx = 0; b_data = B[2]; b_col_idx = 0; end
-                2: begin a_data = A[0]; a_row_idx = 0; b_data = B[1]; b_col_idx = 1; end
-                3: begin a_data = A[2]; a_row_idx = 1; b_data = B[0]; b_col_idx = 0; end
+                0: begin a_data0 = A[0]; a_data1 = 0; b_data0 = B[0]; b_data1 = 0; end
+                1: begin a_data0 = A[1]; a_data1 = A[2]; b_data0 = B[2]; b_data1 = B[1]; end
+                2: begin a_data0 = 0; a_data1 = A[3]; b_data0 = 0; b_data1 = B[3]; end
+                3: begin valid_in = 1; end
+                default: valid_in = 0;
             endcase
         end
     end
-
+    
     // Capture outputs after latency
     always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
             C[0] <= 0; C[1] <= 0; C[2] <= 0; C[3] <= 0;
-        end else if (state == WAIT) begin
+        end else if (state == FEED || state == WAIT) begin
             C[0] <= c00;
             C[1] <= c01;
             C[2] <= c10;
@@ -146,7 +145,7 @@ module controller (
     // Output MUX
     always @(*) begin
         out_data_r = 0;
-        if (state == OUTPUT && output_en) begin
+        if (output_en) begin
             out_data_r = C[output_sel][7:0];  // Lower 8 bits
         end
     end
