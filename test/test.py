@@ -48,8 +48,10 @@ async def test_project(dut):
     expected = [19, 22, 43, 50]
     results = []
 
-    await ClockCycles(dut.clk, 4)  # Wait for systolic array to compute
+    await ClockCycles(dut.clk, 3)  # Wait for systolic array to compute
 
+    dut._log.info(f"Read done value as = {dut.uio_out.value}")
+    
     for i in range(4):
         dut.uio_in.value = (i << 5) | (1 << 4)  # output_sel = i, output_en = 1
         await ClockCycles(dut.clk, 1)
