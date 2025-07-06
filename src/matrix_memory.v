@@ -21,17 +21,14 @@ module matrix_memory #(
 // 4 matrices × 4 elements each = 16 total elements
 reg [WIDTH-1:0] memory [0:15];
 
-// Compute flat address: matrix_index * 4 + element_index
-wire [3:0] address = {matrix_index, element_index};
-
 integer i;
 
 always @(posedge clk) begin
     if (rst) begin
         for (i = 0; i < 16; ++i) begin
-            memory[i] <= (WIDTH-1)'d0;
+            memory[i] <= {WIDTH{1'b0}};
         end
-        data_out <= (WIDTH-1)'d0;
+        data_out <= {WIDTH{1'b0}};
     end else begin
         if (write_en) begin
             memory[write_addr] <= data_in;
@@ -39,7 +36,7 @@ always @(posedge clk) begin
         if (read_en) begin
             data_out <= memory[read_addr];
         end else begin
-            data_out <= 8'd0;
+            data_out <= (WIDTH-1)'d0;
         end
     end
 end
