@@ -29,16 +29,6 @@ module controller (
     // Outputs from systolic array
     wire [15:0] c00, c01, c10, c11;
 
-    systolic_array_2x2 mmu (
-        .clk(clk),
-        .rst(rst),
-        .a_data0(a_data0),
-        .a_data1(a_data1),
-        .b_data0(b_data0),
-        .b_data1(b_data1),
-        .c00(c00), .c01(c01), .c10(c10), .c11(c11)
-    );
-
     // FSM state
     typedef enum logic [1:0] {
         IDLE,
@@ -46,7 +36,24 @@ module controller (
         OUTPUT
     } state_t;
 
+    // Output and cycle counters
+    reg [2:0] cycle_count;
+    reg [2:0] output_count;
+
     state_t state, next_state;
+
+    wire clear = (state == OUTPUT && output_count == 2);
+
+    systolic_array_2x2 mmu (
+        .clk(clk),
+        .rst(rst),
+        .clear(clear),
+        .a_data0(a_data0),
+        .a_data1(a_data1),
+        .b_data0(b_data0),
+        .b_data1(b_data1),
+        .c00(c00), .c01(c01), .c10(c10), .c11(c11)
+    );
 
     always_ff @(posedge clk or posedge rst) begin
         if (rst)
@@ -54,10 +61,6 @@ module controller (
         else
             state <= next_state;
     end
-
-    // Output and cycle counters
-    reg [2:0] cycle_count;
-    reg [2:0] output_count;
 
     always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
@@ -98,6 +101,9 @@ module controller (
             end
             OUTPUT: begin
                 if (output_count == 3) begin
+                    a_loaded = 8'b0;
+                    b_loaded = 8'b0;
+                    cycle_count = 0;
                     next_state = IDLE;
                 end
             end
