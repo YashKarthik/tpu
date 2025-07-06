@@ -3,6 +3,7 @@ module PE #(
 )(
     input wire clk,
     input wire rst,
+    input wire clear, // clears accumulators between computations...
 
     input wire [WIDTH-1:0] a_in,
     input wire [WIDTH-1:0] b_in,
@@ -15,6 +16,10 @@ module PE #(
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
+            c_out     <= 0;
+            a_out     <= 0;
+            b_out     <= 0;
+        end else if (clear) begin
             c_out     <= 0;
             a_out     <= 0;
             b_out     <= 0;

@@ -3,6 +3,7 @@ module systolic_array_2x2 #(
 )(
     input wire clk,
     input wire rst,
+    input wire clear,
 
     input wire [WIDTH-1:0] a_data0,
     input wire [WIDTH-1:0] a_data1,
@@ -33,6 +34,7 @@ module systolic_array_2x2 #(
                 PE #(.WIDTH(8)) pe_inst (
                     .clk(clk),
                     .rst(rst),
+                    .clear(clear),
                     .a_in(a_wire[i][j]),
                     .b_in(b_wire[i][j]),
                     .a_out(a_wire[i][j+1]),
