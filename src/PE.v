@@ -1,3 +1,6 @@
+`default_nettype none
+
+// Scalar Processing Element
 module PE #(
     parameter WIDTH = 8
 )(
