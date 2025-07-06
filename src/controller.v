@@ -81,6 +81,11 @@ module controller (
                 cycle_count <= cycle_count + 1;
             end else if (state == OUTPUT && output_en) begin
                 output_count <= output_count + 1;
+                if (output_count == 2) begin
+                    a_loaded <= 8'b0;
+                    b_loaded <= 8'b0;
+                    cycle_count <= 0;
+                end
             end
         end
     end
@@ -101,9 +106,6 @@ module controller (
             end
             OUTPUT: begin
                 if (output_count == 3) begin
-                    a_loaded = 8'b0;
-                    b_loaded = 8'b0;
-                    cycle_count = 0;
                     next_state = IDLE;
                 end
             end
