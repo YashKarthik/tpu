@@ -30,7 +30,7 @@ module systolic_array_2x2 #(
     generate
         for (i = 0; i < 2; i = i + 1) begin : row
             for (j = 0; j < 2; j = j + 1) begin : col
-                PE #(.WIDTH(8)) pe_inst (
+                PE #(.WIDTH(WIDTH)) pe_inst (
                     .clk(clk),
                     .rst(rst),
                     .a_in(a_wire[i][j]),
