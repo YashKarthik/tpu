@@ -21,7 +21,8 @@ module tt_um_tpu (
     wire        load_sel_ab    = uio_in[1];
     wire [1:0]  load_index     = uio_in[3:2];
     wire        output_en      = uio_in[4];
-    wire [1:0]  output_sel     = uio_in[6:5];
+    wire [1:0]  mem_addr       = uio_in[6:5];
+    wire        load_mem       = uio_in[7];
 
     wire [7:0] out_data;
     wire       done;
@@ -35,7 +36,8 @@ module tt_um_tpu (
         .load_index(load_index),
         .in_data(ui_in),
         .output_en(output_en),
-        .output_sel(output_sel),
+        .load_mem(load_mem),
+        .mem_addr(mem_addr),
         .out_data(out_data),
         .done(done)
     );
@@ -44,6 +46,6 @@ module tt_um_tpu (
     assign uio_out  = {done, 7'b0};
     assign uio_oe   = 8'b10000000;
 
-    wire _unused = &{ena, uio_in[7]};
+    wire _unused = &{ena};
 
 endmodule

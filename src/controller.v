@@ -8,7 +8,8 @@ module controller (
     input  wire [7:0]  in_data,
 
     input  wire        output_en,
-    input  wire [1:0]  output_sel,
+    input  wire        load_mem,
+    input  wire [1:0]  mem_addr,
     output wire [7:0]  out_data,
     output wire        done
 );
@@ -42,7 +43,7 @@ module controller (
 
     state_t state, next_state;
 
-    wire clear = (state == OUTPUT && output_count == 2);
+    wire clear = (output_count == 3);
 
     systolic_array_2x2 mmu (
         .clk(clk),
@@ -55,11 +56,36 @@ module controller (
         .c00(c00), .c01(c01), .c10(c10), .c11(c11)
     );
 
+    reg[1:0] mem_ptr; // current memory write address, cycles through
+    reg mem_write_en;
+    reg [31:0] mem_write_data;
+    wire [31:0] mem_read_data;
+
+    matrix_memory #(.WIDTH(8), .GROUPS(4)) sram (
+        .clk(clk),
+        .rst(rst),
+        .write_en(mem_write_en),
+        .write_addr(mem_ptr),
+        .data_in(mem_write_data),
+        .read_en(load_mem),
+        .read_addr(mem_addr),
+        .data_out(mem_read_data)
+    );
+
     always_ff @(posedge clk or posedge rst) begin
-        if (rst)
+        if (rst) begin
             state <= IDLE;
-        else
+        end else begin
             state <= next_state;
+        end
+    end
+
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            mem_ptr <= 0;
+        end else if (state == OUTPUT && output_en && output_count == 3) begin
+            mem_ptr <= mem_ptr + 1;
+        end
     end
 
     always_ff @(posedge clk or posedge rst) begin
@@ -68,8 +94,24 @@ module controller (
             b_loaded <= 0;
             cycle_count <= 0;
             output_count <= 0;
+        end else if (load_mem) begin
+            $display("Loading %d, %d, %d, %d from memory", mem_read_data[7:0], mem_read_data[15:8], mem_read_data[23:16], mem_read_data[31:24]);
+            if (!load_sel_ab) begin
+                A[0] <= mem_read_data[7:0];
+                A[1] <= mem_read_data[15:8];
+                A[2] <= mem_read_data[23:16];
+                A[3] <= mem_read_data[31:24];
+                a_loaded <= 4'b1111;
+            end else begin
+                B[0] <= mem_read_data[7:0];
+                B[1] <= mem_read_data[15:8];
+                B[2] <= mem_read_data[23:16];
+                B[3] <= mem_read_data[31:24];
+                b_loaded <= 4'b1111;
+            end
         end else begin
             if (load_en && state == IDLE) begin
+                output_count <= 0;
                 if (!load_sel_ab) begin
                     A[load_index] <= in_data;
                     a_loaded[load_index] <= 1;
@@ -79,6 +121,9 @@ module controller (
                 end
             end else if (state == FEED) begin
                 cycle_count <= cycle_count + 1;
+                if (cycle_count == 3) begin
+                    output_count <= output_count + 1;
+                end
             end else if (state == OUTPUT && output_en) begin
                 output_count <= output_count + 1;
                 if (output_count == 2) begin
@@ -113,7 +158,7 @@ module controller (
     end
 
     // Done signal
-    assign done = (state == OUTPUT);
+    assign done = (cycle_count == 3 || state == OUTPUT);
 
     // Feeding logic
     always @(*) begin
@@ -143,12 +188,28 @@ module controller (
             C[3] <= c11;
         end
     end
+ 
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            mem_write_en <= 0;
+            mem_write_data <= 0;
+        end else begin
+            if (output_count == 1) begin
+                mem_write_en <= 1;
+                mem_write_data <= {C[3][7:0], C[2][7:0], C[1][7:0], C[0][7:0]};
+                $display("Writing values %d, %d", mem_write_data, mem_write_en);
+            end
+            else begin
+                mem_write_en <= 0;
+            end
+        end
+    end
 
     // Output MUX
     always @(*) begin
         out_data_r = 0;
         if (output_en) begin
-            out_data_r = C[output_sel][7:0];
+            out_data_r = C[output_count][7:0];
         end
     end
 

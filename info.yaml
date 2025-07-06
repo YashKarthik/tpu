@@ -21,6 +21,7 @@ project:
     - "systolic_array_2x2.v"
     - "controller.v"
     - "PE.v"
+    - "matrix_memory.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
@@ -52,9 +53,9 @@ pinout:
   uio[2]: "LOAD_SEL_INDEX[0] (input)"
   uio[3]: "LOAD_SEL_INDEX[1] (output)"
   uio[4]: "OUTPUT_EN (input)"
-  uio[5]: "OUTPUT_SEL[0] (input)"
-  uio[6]: "OUTPUT_SEL[1] (input)"
-  uio[7]: "DONE (output)"
+  uio[5]: "MEM_ADDR[0] (input)"
+  uio[6]: "MEM_ADDR[1] (input)"
+  uio[7]: "BIDIR: LOAD_MEM (input) / DONE (output)"
 
 # Do not change!
 yaml_version: 6
