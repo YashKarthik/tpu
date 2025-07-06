@@ -1,27 +1,49 @@
 /*
- * Copyright (c) 2024 Your Name
+ * Copyright (c) 2025 William
  * SPDX-License-Identifier: Apache-2.0
  */
 
 `default_nettype none
 
 module tt_um_tpu (
-    input  wire [7:0] ui_in,    // Dedicated inputs
-    output wire [7:0] uo_out,   // Dedicated outputs
-    input  wire [7:0] uio_in,   // IOs: Input path
-    output wire [7:0] uio_out,  // IOs: Output path
-    output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
-    input  wire       ena,      // always 1 when the design is powered, so you can ignore it
-    input  wire       clk,      // clock
-    input  wire       rst_n     // reset_n - low to reset
+    input  wire [7:0] ui_in,      // data input
+    output wire [7:0] uo_out,     // data output (lower 8 bits of result)
+    input  wire [7:0] uio_in,     // control input
+    output wire [7:0] uio_out,    // done signal on uio_out[7]
+    output wire [7:0] uio_oe,     // only uio_out[7] driven
+    input  wire       ena,
+    input  wire       clk,
+    input  wire       rst_n
 );
 
-  // All output pins must be assigned. If not used, assign to 0.
-  assign uo_out  = ui_in + uio_in;  // Example: ou_out is the sum of ui_in and uio_in
-  assign uio_out = 0;
-  assign uio_oe  = 0;
+    // Control signal decoding
+    wire        load_en        = uio_in[0];
+    wire        load_sel_ab    = uio_in[1];
+    wire [1:0]  load_index     = uio_in[3:2];
+    wire        output_en      = uio_in[4];
+    wire [1:0]  output_sel     = uio_in[6:5];
 
-  // List all unused inputs to prevent warnings
-  wire _unused = &{ena, clk, rst_n, 1'b0};
+    wire [7:0] out_data;
+    wire       done;
+
+    // Instantiate controller
+    controller ctrl (
+        .clk(clk),
+        .rst(~rst_n),
+        .load_en(load_en),
+        .load_sel_ab(load_sel_ab),
+        .load_index(load_index),
+        .in_data(ui_in),
+        .output_en(output_en),
+        .output_sel(output_sel),
+        .out_data(out_data),
+        .done(done)
+    );
+
+    assign uo_out   = out_data;
+    assign uio_out  = {done, 7'b0};
+    assign uio_oe   = 8'b10000000;
+
+    wire _unused = &{ena, uio_in[7]};
 
 endmodule
