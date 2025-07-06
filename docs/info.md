@@ -9,12 +9,19 @@ You can also include images in this folder and reference them in the markdown. E
 
 ## How it works
 
-It works because it works
+The controller initially takes 8 matrix values, 4 for each of 2 matrices. Each element is 1 byte.
+
+Then they are fed either 2 or 4 at a time to the 2x2 systolic array containing 4 processing elements (PEs).
+
+Each PE will contain one of the output matrix values, which are all computed within 4 cycles, but for which output extraction for the top-left element can begin after just 3 cycles.
 
 ## How to test
 
-Use CocoTB testbench in test directory
+Enter the test directory at `test`.
+Then for the top level test simply use `make` to trigger the makefile, which will run the test.
 
 ## External hardware
 
-The Raspberry Pi will serve as external memory
+The Raspberry Pi will serve as an optional source of external memory.
+
+External memory values will be received and written into via a pattern of handshakes.
