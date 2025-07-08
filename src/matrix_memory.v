@@ -30,7 +30,6 @@ module matrix_memory #(
             data_out <= {GROUPS*WIDTH{1'b0}};
         end else begin
             if (write_en) begin
-                $display("Writing %d to address %d", data_in, write_addr);
                 for (i = 0; i < 4; i = i + 1)
                     memory[{write_addr, 2'b00} + i] <= data_in[i*WIDTH +: WIDTH];
             end
