@@ -48,7 +48,7 @@ async def matmul_from_memory(dut):
 
     # Load 2 matrices
     A = [1, 2, 3, 4]  # row-major
-    B = [5, 6, 7, 8]
+    B = [3, 4, 5, 6]
 
     await load_matrix(dut, A, sel=0)
     await load_matrix(dut, B, sel=1)
@@ -78,9 +78,9 @@ async def matmul_from_memory(dut):
     await ClockCycles(dut.clk, 1)
 
     await trigger_load_mem(dut, sel=0, addr=0)  # load A from memory addr 0
-    await load_matrix(dut, B, sel=1)
+    await load_matrix(dut, A, sel=1)
 
-    expected = get_expected_matmul(results, B)
+    expected = get_expected_matmul(results, A)
 
     results = []
 

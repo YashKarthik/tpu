@@ -35,7 +35,6 @@ module matrix_memory #(
                     memory[{write_addr, 2'b00} + i] <= data_in[i*WIDTH +: WIDTH];
             end
             if (read_en) begin
-                $display("Reading from address %d", read_addr);
                 for (i = 0; i < 4; i = i + 1)
                     data_out[i*WIDTH +: WIDTH] <= memory[{read_addr, 2'b00} + i];
             end else begin

@@ -72,6 +72,19 @@ module controller (
         .data_out(mem_read_data)
     );
 
+    reg mem_read_valid;
+    reg [31:0] mem_read_latched; // latch memory reads so output reg of matrix memory goes in on time
+
+    always_ff @(posedge clk or posedge rst) begin
+        if (rst) begin
+            mem_read_valid <= 0;
+            mem_read_latched <= 0;
+        end else begin
+            mem_read_valid <= load_mem;
+            mem_read_latched <= mem_read_data;
+        end
+    end
+
     always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
             state <= IDLE;
@@ -94,8 +107,7 @@ module controller (
             b_loaded <= 0;
             cycle_count <= 0;
             output_count <= 0;
-        end else if (load_mem) begin
-            $display("Loading %d, %d, %d, %d from memory", mem_read_data[7:0], mem_read_data[15:8], mem_read_data[23:16], mem_read_data[31:24]);
+        end else if (mem_read_valid) begin
             if (!load_sel_ab) begin
                 A[0] <= mem_read_data[7:0];
                 A[1] <= mem_read_data[15:8];
@@ -194,10 +206,9 @@ module controller (
             mem_write_en <= 0;
             mem_write_data <= 0;
         end else begin
-            if (output_count == 1) begin
+            if (output_count == 2) begin
                 mem_write_en <= 1;
                 mem_write_data <= {C[3][7:0], C[2][7:0], C[1][7:0], C[0][7:0]};
-                $display("Writing values %d, %d", mem_write_data, mem_write_en);
             end
             else begin
                 mem_write_en <= 0;
