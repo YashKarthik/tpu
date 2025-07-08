@@ -1,40 +1,57 @@
-# SPDX-FileCopyrightText: © 2024 Tiny Tapeout
-# SPDX-License-Identifier: Apache-2.0
-
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles
 
 
 @cocotb.test()
-async def test_project(dut):
-    dut._log.info("Start")
+async def test_weight_memory(dut):
+    """
+    Exercise the weight_memory block via the public load interface.
 
-    # Set the clock period to 10 us (100 KHz)
-    clock = Clock(dut.clk, 10, units="us")
-    cocotb.start_soon(clock.start())
+    * load_en         — uio_in[0]
+    * load_index[1:0] — uio_in[3:2]
+    * payload byte    — ui_in[7:0]
 
-    # Reset
-    dut._log.info("Reset")
-    dut.ena.value = 1
+    After programming four distinct bytes we check that
+    wmem.weight_1..weight_4 reflect the values.
+    """
+
+    # 10 ns clock
+    cocotb.start_soon(Clock(dut.clk, 10, units="ns").start())
+
+    # Reset and enable the design
+    dut.ena.value   = 1
     dut.ui_in.value = 0
     dut.uio_in.value = 0
     dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
+    await ClockCycles(dut.clk, 5)
     dut.rst_n.value = 1
-
-    dut._log.info("Test project behavior")
-
-    # Set the input values you want to test
-    dut.ui_in.value = 20
-    dut.uio_in.value = 30
-
-    # Wait for one clock cycle to see the output values
     await ClockCycles(dut.clk, 1)
 
-    # The following assersion is just an example of how to check the output values.
-    # Change it to match the actual expected output of your module:
-    assert dut.uo_out.value == 50
+    # Bytes we will store at addresses 0-3
+    weights = [11, 22, 33, 44]
 
-    # Keep testing the module by changing the input values, waiting for
-    # one or more clock cycles, and asserting the expected output values.
+    async def program(addr, byte):
+        """Pulse load_en for one cycle to write <byte> to <addr>."""
+        dut.ui_in.value  = byte
+        dut.uio_in.value = (addr << 2) | 0b00000001   # load_en=1
+        await ClockCycles(dut.clk, 1)
+        dut.uio_in.value = 0                          # de-assert
+        await ClockCycles(dut.clk, 1)
+
+    # Write four locations
+    for a, b in enumerate(weights):
+        await program(a, b)
+
+    # Give the outputs a settling cycle
+    await ClockCycles(dut.clk, 1)
+
+    # Hierarchical access: tb → tpu_project → wmem
+    wmem = dut.tpu_project.wmem
+
+    assert int(wmem.weight_1.value) == weights[0], "weight_1 mismatch"
+    assert int(wmem.weight_2.value) == weights[1], "weight_2 mismatch"
+    assert int(wmem.weight_3.value) == weights[2], "weight_3 mismatch"
+    assert int(wmem.weight_4.value) == weights[3], "weight_4 mismatch"
+
+    dut._log.info("weight_memory self-test passed!")

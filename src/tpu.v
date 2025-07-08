@@ -25,19 +25,22 @@ module tt_um_tpu (
 
     wire [7:0] out_data;
     wire       done;
+    
+    wire [7:0] out1;
+    wire [7:0] out2;
+    wire [7:0] out3;
+    wire [7:0] out4;
 
-    // Instantiate controller
-    controller ctrl (
+    weight_memory wmem (
         .clk(clk),
         .rst(~rst_n),
-        .load_en(load_en),
-        .load_sel_ab(load_sel_ab),
-        .load_index(load_index),
-        .in_data(ui_in),
-        .output_en(output_en),
-        .output_sel(output_sel),
-        .out_data(out_data),
-        .done(done)
+        .mem_ctrl_en(load_en),
+        .addr(load_index),
+        .rpi_weights(ui_in),
+        .weight_1(out1),
+        .weight_2(out2),
+        .weight_3(out3),
+        .weight_4(out4)
     );
 
     assign uo_out   = out_data;
