@@ -99,24 +99,25 @@ module controller (
             b_loaded <= 0;
             cycle_count <= 0;
             output_count <= 0;
-        end else if (mem_read_valid) begin
-            output_count <= 0;
-            if (!load_sel_ab) begin
-                A[0] <= mem_read_data[7:0];
-                A[1] <= mem_read_data[15:8];
-                A[2] <= mem_read_data[23:16];
-                A[3] <= mem_read_data[31:24];
-                a_loaded <= 4'b1111;
-            end else begin
-                B[0] <= mem_read_data[7:0];
-                B[1] <= mem_read_data[15:8];
-                B[2] <= mem_read_data[23:16];
-                B[3] <= mem_read_data[31:24];
-                b_loaded <= 4'b1111;
-            end
         end else begin
-            if (load_en && state == IDLE) begin
+            if (state == IDLE) begin
                 output_count <= 0;
+            end
+            if (mem_read_valid) begin
+                if (!load_sel_ab) begin
+                    A[0] <= mem_read_data[7:0];
+                    A[1] <= mem_read_data[15:8];
+                    A[2] <= mem_read_data[23:16];
+                    A[3] <= mem_read_data[31:24];
+                    a_loaded <= 4'b1111;
+                end else begin
+                    B[0] <= mem_read_data[7:0];
+                    B[1] <= mem_read_data[15:8];
+                    B[2] <= mem_read_data[23:16];
+                    B[3] <= mem_read_data[31:24];
+                    b_loaded <= 4'b1111;
+                end
+            end else if (load_en && state == IDLE) begin
                 if (!load_sel_ab) begin
                     A[load_index] <= in_data;
                     a_loaded[load_index] <= 1;
