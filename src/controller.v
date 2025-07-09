@@ -95,19 +95,12 @@ module controller (
 
     always_ff @(posedge clk or posedge rst) begin
         if (rst) begin
-            mem_ptr <= 0;
-        end else if (state == OUTPUT && output_en && output_count == 3) begin
-            mem_ptr <= mem_ptr + 1;
-        end
-    end
-
-    always_ff @(posedge clk or posedge rst) begin
-        if (rst) begin
             a_loaded <= 0;
             b_loaded <= 0;
             cycle_count <= 0;
             output_count <= 0;
         end else if (mem_read_valid) begin
+            output_count <= 0;
             if (!load_sel_ab) begin
                 A[0] <= mem_read_data[7:0];
                 A[1] <= mem_read_data[15:8];
@@ -205,10 +198,12 @@ module controller (
         if (rst) begin
             mem_write_en <= 0;
             mem_write_data <= 0;
+            mem_ptr <= 0;
         end else begin
             if (output_count == 2) begin
                 mem_write_en <= 1;
                 mem_write_data <= {C[3][7:0], C[2][7:0], C[1][7:0], C[0][7:0]};
+                mem_ptr <= mem_ptr + 1;
             end
             else begin
                 mem_write_en <= 0;

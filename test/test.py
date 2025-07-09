@@ -26,7 +26,10 @@ async def load_matrix(dut, matrix, sel):
         await RisingEdge(dut.clk)
 
 async def trigger_load_mem(dut, sel, addr):
-    dut.uio_in.value = (1 << 7) | (sel << 1) | addr  # load_mem=1, sel, addr
+    dut.ui_in.value = 0
+    dut.uio_in.value = (sel << 1) | (1 << 7) | (addr << 6) # load_mem=1, sel, addr
+    await RisingEdge(dut.clk)
+    dut.uio_in.value = (sel << 1)
     await RisingEdge(dut.clk)
     dut.uio_in.value = 0
     await RisingEdge(dut.clk)
@@ -48,7 +51,7 @@ async def matmul_from_memory(dut):
 
     # Load 2 matrices
     A = [1, 2, 3, 4]  # row-major
-    B = [3, 4, 5, 6]
+    B = [1, 0, 0, 1]
 
     await load_matrix(dut, A, sel=0)
     await load_matrix(dut, B, sel=1)
@@ -56,7 +59,7 @@ async def matmul_from_memory(dut):
     # Compute output from the given, write output into memory
 
     expected = get_expected_matmul(A, B)
-    results = []
+    results1 = []
 
     await ClockCycles(dut.clk, 3)
 
@@ -64,7 +67,7 @@ async def matmul_from_memory(dut):
         dut.uio_in.value = (1 << 4)  # output_en = 1
         await ClockCycles(dut.clk, 1)
         val = dut.uo_out.value.integer
-        results.append(val)
+        results1.append(val)
         dut._log.info(f"Read C[{i//2}][{i%2}] = {val}")
         dut.uio_in.value = 0
         await ClockCycles(dut.clk, 1)
@@ -72,17 +75,17 @@ async def matmul_from_memory(dut):
     # ------------------------------
     # STEP 5: Check results
     for i in range(4):
-        assert results[i] == expected[i], f"C[{i//2}][{i%2}] = {results[i]} != expected {expected[i]}"
+        assert results1[i] == expected[i], f"C[{i//2}][{i%2}] = {results1[i]} != expected {expected[i]}"
 
     # Use output as input for next multiplication (i.e. load into "registers" from on-chip memory rather than input
     await ClockCycles(dut.clk, 1)
 
-    await trigger_load_mem(dut, sel=0, addr=0)  # load A from memory addr 0
+    await trigger_load_mem(dut, sel=0, addr=1)  # load A from memory addr 0
     await load_matrix(dut, A, sel=1)
 
-    expected = get_expected_matmul(results, A)
+    expected = get_expected_matmul(results1, A)
 
-    results = []
+    results2 = []
 
     await ClockCycles(dut.clk, 3)
 
@@ -90,7 +93,7 @@ async def matmul_from_memory(dut):
         dut.uio_in.value = (1 << 4)  # output_en = 1
         await ClockCycles(dut.clk, 1)
         val = dut.uo_out.value.integer
-        results.append(val)
+        results2.append(val)
         dut._log.info(f"Read C[{i//2}][{i%2}] = {val}")
         dut.uio_in.value = 0
         await ClockCycles(dut.clk, 1)
@@ -98,7 +101,33 @@ async def matmul_from_memory(dut):
     # ------------------------------
     # STEP 5: Check results
     for i in range(4):
-        assert results[i] == expected[i], f"C[{i//2}][{i%2}] = {results[i]} != expected {expected[i]}"
+        assert results2[i] == expected[i], f"C[{i//2}][{i%2}] = {results2[i]} != expected {expected[i]}"
+        
+    # Use output as input for next multiplication (i.e. load into "registers" from on-chip memory rather than input
+    await ClockCycles(dut.clk, 3)
+
+    await trigger_load_mem(dut, sel=0, addr=1)  # load A from memory addr 0
+    await trigger_load_mem(dut, sel=1, addr=0)
+
+    expected = get_expected_matmul(results1, results2)
+
+    results3 = []
+
+    await ClockCycles(dut.clk, 3)
+
+    for i in range(4):
+        dut.uio_in.value = (1 << 4)  # output_en = 1
+        await ClockCycles(dut.clk, 1)
+        val = dut.uo_out.value.integer
+        results3.append(val)
+        dut._log.info(f"Read C[{i//2}][{i%2}] = {val}")
+        dut.uio_in.value = 0
+        await ClockCycles(dut.clk, 1)
+
+    # ------------------------------
+    # STEP 5: Check results
+    for i in range(4):
+        assert results3[i] == expected[i], f"C[{i//2}][{i%2}] = {results3[i]} != expected {expected[i]}"
 
 @cocotb.test()
 async def test_project(dut):
