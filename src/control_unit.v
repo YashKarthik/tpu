@@ -14,7 +14,7 @@ module control_unit (
   
   // MMU feeding control
   output reg feeding_en,
-  output reg [2:0] mmu_cycles,
+  output reg [2:0] mmu_cycles
 );
 
   // STATES
@@ -40,7 +40,6 @@ module control_unit (
         // All 8 elements loaded (4 for each matrix)
         if (mat_elems_loaded == 3'b111) begin 
             next_state = S_MMU_FEED_COMPUTE_WB;
-            mat_elems_loaded <= 0;
         end
       end
       
@@ -55,7 +54,7 @@ module control_unit (
          * => +1 cycle
          **/
         if (mmu_cycles == 3'b101) begin
-          next_state <= S_IDLE;
+          next_state = S_IDLE;
         end
       end
     endcase
@@ -67,7 +66,7 @@ module control_unit (
       state <= S_IDLE;
       mat_elems_loaded <= 0;
       mmu_cycles <= 0;
-      feeding_en <= 0;,
+      feeding_en <= 0;
 
       host_req_mat <= 0;
       wm_load_mat <= 0;
@@ -77,10 +76,15 @@ module control_unit (
       state <= next_state;
 
       case (state)
-        S_IDLE:
+        S_IDLE: begin
+          mat_elems_loaded <= 0;
+          mmu_cycles <= 0;
+          feeding_en <= 0;
+
           host_req_mat <= 0;
           wm_load_mat <= 0;
           wm_addr <= 3'b000;
+        end
 
         S_LOAD_MATS: begin
           if (host_req_mat) begin
@@ -88,6 +92,10 @@ module control_unit (
           end else begin
             mat_elems_loaded <= 0;
           end
+
+        if (mat_elems_loaded == 3'b111) begin 
+            mat_elems_loaded <= 0;
+        end
 
           host_req_mat <= 1;
           wm_load_mat <= 1;
@@ -104,4 +112,4 @@ module control_unit (
           mmu_cycles <= mmu_cycles + 1;
       endcase
     end
-endmodule;
+endmodule
