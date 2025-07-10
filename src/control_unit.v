@@ -7,7 +7,6 @@ module control_unit (
   
   // Host interface
   output reg host_req_mat,
-  output reg host_mat_wb,
   
   // Weight memory interface  
   output reg wm_load_mat,
@@ -16,7 +15,6 @@ module control_unit (
   // MMU feeding control
   output reg feeding_en,
   output reg [2:0] mmu_cycles,
-  output reg [1:0] feed_cycle,
   
   output reg done
 );
@@ -49,15 +47,17 @@ module control_unit (
       end
       
       S_MMU_FEED_COMPUTE_WB: begin
-        // 4 cycles of feeding & computing
-        if (mmu_cyles == 2'b11) begin
-            next_state = S_WRITEBACK;
-        end
-      end
-      
-      S_WRITEBACK: begin
-        if (wb_cycles == 3'b11) begin  // 4 results written back
-            next_state = S_IDLE;
+        /* Cycle 0: Start feeding data
+         * Cycle 1: First partial products computed
+         * Cycle 2: c00 outputted; c00 = a00×b00 ready
+         * Cycle 3: c01 outputted; c01 = a00×b01 ready, c10 = a10×b00 ready
+         * Cycle 4: c10 outputted; c11 = a10×b01 ready;
+         * Cycle 5: c11 outputted;
+         * outputting is staggered since only one output per cycle (tt) 
+         * => +1 cycle
+         **/
+        if (mmu_cycles == 3'b101) begin
+          state <= S_IDLE;
         end
       end
     endcase
@@ -71,8 +71,6 @@ module control_unit (
       mmu_cycles <= 0;
 
       host_req_mat <= 0;
-      host_mat_wb <= 0;
-      load_mmu <= 0;
       wm_load_mat <= 0;
       wm_addr <= 2'b00;
 
@@ -82,8 +80,6 @@ module control_unit (
       case (state)
         S_IDLE:
           host_req_mat <= 0;
-          host_mat_wb <= 0;
-          load_mmu <= 0;
           wm_load_mat <= 0;
           wm_addr <= 3'b000;
 
@@ -95,8 +91,6 @@ module control_unit (
           end
 
           host_req_mat <= 1;
-          host_mat_wb <= 0;
-          load_mmu <= 0;
           wm_load_mat <= 1;
           wm_addr <= mat_elems_loaded;
         end
@@ -104,40 +98,11 @@ module control_unit (
         S_MMU_FEED_COMPUTE_WB:
           feeding_en <= 1;
           host_req_mat <= 0;
-          host_mat_wb <= 0;
-          load_mmu <= 1;
 
           wm_load_mat <= 0;
           wm_addr <= 0;
 
-          /* Cycle 0: Start feeding data
-           * Cycle 1: First partial products computed
-           * Cycle 2: c00 = a00×b00 ready
-           * Cycle 3: c01 = a00×b01 ready, c10 = a10×b00 ready
-           * Cycle 4: c11 = a10×b01 ready, done
-           * outputting is staggered => +1 cycle
-           **/
-          if (mmu_cycles == 3'b101) begin
-            state <= S_IDLE;
-          end
-
           mmu_cycles <= mmu_cycles + 1;
-
-        //S_WRITEBACK:
-        //  if (mat_elems_loaded == 3'b111 ) begin
-        //    state <= S_IDLE;
-        //  end else begin
-        //    host_mat_wb <= 1;
-
-        //    host_req_mat <= 0;
-        //    load_mmu <= 0;
-        //    wm_load_mat <= 0;
-        //    wm_addr <= mat_elems_loaded;
-
-        //    mat_elems_loaded <= mat_elems_loaded + 1;
-        //  end
-
+      endcase
     end
-  end
-  
 endmodule;
