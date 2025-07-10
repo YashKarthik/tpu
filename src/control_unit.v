@@ -111,6 +111,6 @@ module control_unit (
 
           mmu_cycles <= mmu_cycles + 1;
         end
-      end
+      endcase
     end
 endmodule
