@@ -4,7 +4,6 @@ module control_unit (
   input wire clk,
   input wire rst_n,
   input wire start,
-  //input wire mmu_done,
   
   // Host interface
   output reg host_req_mat,
@@ -15,9 +14,9 @@ module control_unit (
   output reg [2:0] wm_addr,
   
   // MMU feeding control
+  output reg feeding_en,
   output reg [1:0] mmu_cycles,
   output reg [1:0] feed_cycle,
-  output reg feeding_active,
   
   output reg done
 );
@@ -103,6 +102,7 @@ module control_unit (
         end
 
         S_MMU_FEED_AND_COMPUTE:
+          feeding_en <= 1;
           host_req_mat <= 0;
           host_mat_wb <= 0;
           load_mmu <= 1;
@@ -111,7 +111,7 @@ module control_unit (
           wm_addr <= 0;
 
           if (mmu_cycles == 3'b10) begin
-            state <= state + 1;
+            state <= S_IDLE;
           end
 
           mmu_cycles <= mmu_cycles + 1;
