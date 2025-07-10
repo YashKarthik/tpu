@@ -123,7 +123,7 @@ module mmu_feeder (
           host_outdata <= 0;
           out_buf <= 0;
         end
-      endcase
+      end
 
     end else begin
         clear <= 1;

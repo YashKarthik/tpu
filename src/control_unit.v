@@ -57,7 +57,7 @@ module control_unit (
           next_state = S_IDLE;
         end
       end
-    endcase
+    end
   end
   
   // State Machine
@@ -102,7 +102,7 @@ module control_unit (
           wm_addr <= mat_elems_loaded;
         end
 
-        S_MMU_FEED_COMPUTE_WB:
+        S_MMU_FEED_COMPUTE_WB: begin
           feeding_en <= 1;
           host_req_mat <= 0;
 
@@ -110,6 +110,7 @@ module control_unit (
           wm_addr <= 0;
 
           mmu_cycles <= mmu_cycles + 1;
-      endcase
+        end
+      end
     end
 endmodule
