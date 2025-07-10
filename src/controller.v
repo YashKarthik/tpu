@@ -113,7 +113,7 @@ module controller (
     end
 
     // Done signal
-    assign done = (state == OUTPUT);
+    assign done = (cycle_count == 2 && state == FEED);
 
     // Feeding logic
     always @(*) begin
