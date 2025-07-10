@@ -5,7 +5,7 @@ module mmu_feeder (
   input wire rst_n,
   input wire clear,
   input wire en,
-  input wire [1:0] mmu_cycles,
+  input wire [2:0] mmu_cycles,
 
   input wire [7:0] weight_0,
   input wire [7:0] weight_1,
@@ -17,12 +17,21 @@ module mmu_feeder (
   input wire [7:0] input_2,
   input wire [7:0] input_3
 
+  input wire [7:0] c_0,
+  input wire [7:0] c_1,
+  input wire [7:0] c_2,
+  input wire [7:0] c_3
+
   output clear,
-  output wire [7:0] a_data0,
-  output wire [7:0] a_data1,
-  output wire [7:0] b_data0,
-  output wire [7:0] b_data1,
+  output reg [7:0] a_data0,
+  output reg [7:0] a_data1,
+  output reg [7:0] b_data0,
+  output reg [7:0] b_data1,
+
+  output reg [7:0] outdata,
 );
+
+  reg [7:0] out_buf;
 
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -31,29 +40,67 @@ module mmu_feeder (
       a_data1 <= 0;
       b_data0 <= 0;
       b_data1 <= 0;
+
+      outdata <= 0;
     end else begin
 
       if (en) begin
         case (mmu_cycle)
-          2'b00: begin  // Cycle 0
-            a_data0 <= input_0;   
-            a_data1 <= 8'b0;         
-            b_data0 <= weight_0;   
-            b_data1 <= 8'b0;          
+          3'b000: begin
+            a_data0  <= input_0;   
+            a_data1  <= 8'b0;         
+            b_data0  <= weight_0;   
+            b_data1  <= 8'b0;          
+
+            outdata <= 0;
           end
 
-          2'b01: begin  // Cycle 1
-            a_data0 <= input_1;   
-            a_data1 <= input_2;   
-            b_data0 <= weight_2;   
-            b_data1 <= weight_1;   
+          3'b001: begin
+            a_data0  <= input_1;   
+            a_data1  <= input_2;   
+            b_data0  <= weight_2;   
+            b_data1  <= weight_1;   
+
+            outdata <= 0;
           end
 
-          2'b10: begin  // Cycle 2
-            a_data0 <= 8'b0;         
-            a_data1 <= input_3;   
-            b_data0 <= 8'b0;          
-            b_data1 <= weight_3;   
+          3'b010: begin
+            a_data0  <= 8'b0;         
+            a_data1  <= input_3;   
+            b_data0  <= 8'b0;          
+            b_data1  <= weight_3;   
+
+            outdata <= c0;
+          end
+
+          3'b011: begin
+            a_data0 <= 0;      
+            a_data1 <= 0;
+            b_data0 <= 0;       
+            b_data1 <= 0;   
+
+            outdata <= c1;
+            out_buf <= c2;
+          end
+
+          3'b100: begin
+            a_data0 <= 0;      
+            a_data1 <= 0;
+            b_data0 <= 0;       
+            b_data1 <= 0;   
+
+            outdata <= c2;
+            out_buf <= c3;
+          end
+
+          3'b101: begin
+            a_data0 <= 0;      
+            a_data1 <= 0;
+            b_data0 <= 0;       
+            b_data1 <= 0;   
+
+            outdata <= c3;
+            out_buf <= 0;
           end
 
           default: begin
@@ -61,9 +108,12 @@ module mmu_feeder (
             a_data1 <= 8'b0;
             b_data0 <= 8'b0;
             b_data1 <= 8'b0;
+            
+            outdata <= 0;
+            out_buf <= 0;
           end
-
         endcase
+
       end else begin
         clear <= 1,
         a_data0 <= 0;

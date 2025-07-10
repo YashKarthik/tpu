@@ -15,7 +15,7 @@ module control_unit (
   
   // MMU feeding control
   output reg feeding_en,
-  output reg [1:0] mmu_cycles,
+  output reg [2:0] mmu_cycles,
   output reg [1:0] feed_cycle,
   
   output reg done
@@ -24,7 +24,7 @@ module control_unit (
   // STATES
   localparam[1:0] S_IDLE        = 2'b00;
   localparam[1:0] S_LOAD_MATS   = 2'b01;
-  localparam[1:0] S_MMU_OP      = 2'b10;
+  localparam[1:0] S_MMU_FEED_OMPUTE_WB      = 2'b10;
 
   reg[1:0] state, next_state;
   reg[1:0] mat_elems_loaded;
@@ -43,12 +43,12 @@ module control_unit (
       S_LOAD_MATS: begin
         // All 8 elements loaded (4 for each matrix)
         if (mat_elems_loaded == 3'b111) begin 
-            next_state = S_MMU_FEED_AND_COMPUTE;
+            next_state = S_MMU_FEED_COMPUTE_WB;
             mat_elems_loaded <= 0;
         end
       end
       
-      S_MMU_FEED_AND_COMPUTE: begin
+      S_MMU_FEED_COMPUTE_WB: begin
         // 4 cycles of feeding & computing
         if (mmu_cyles == 2'b11) begin
             next_state = S_WRITEBACK;
@@ -101,7 +101,7 @@ module control_unit (
           wm_addr <= mat_elems_loaded;
         end
 
-        S_MMU_FEED_AND_COMPUTE:
+        S_MMU_FEED_COMPUTE_WB:
           feeding_en <= 1;
           host_req_mat <= 0;
           host_mat_wb <= 0;
@@ -110,7 +110,14 @@ module control_unit (
           wm_load_mat <= 0;
           wm_addr <= 0;
 
-          if (mmu_cycles == 3'b10) begin
+          /* Cycle 0: Start feeding data
+           * Cycle 1: First partial products computed
+           * Cycle 2: c00 = a00×b00 ready
+           * Cycle 3: c01 = a00×b01 ready, c10 = a10×b00 ready
+           * Cycle 4: c11 = a10×b01 ready, done
+           * outputting is staggered => +1 cycle
+           **/
+          if (mmu_cycles == 3'b101) begin
             state <= S_IDLE;
           end
 
