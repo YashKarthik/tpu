@@ -57,7 +57,7 @@ module control_unit (
           next_state = S_IDLE;
         end
       end
-    end
+    endcase
   end
   
   // State Machine
