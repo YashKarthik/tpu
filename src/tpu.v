@@ -16,34 +16,34 @@ module tt_um_tpu (
     input  wire       rst_n
 );
 
-    // Control signal decoding
-    wire        load_en        = uio_in[0];
-    wire        load_sel_ab    = uio_in[1];
-    wire [1:0]  load_index     = uio_in[3:2];
-    wire        output_en      = uio_in[4];
-    wire [1:0]  output_sel     = uio_in[6:5];
+//    // Control signal decoding
+//    wire        load_en        = uio_in[0];
+//    wire        load_sel_ab    = uio_in[1];
+//    wire [1:0]  load_index     = uio_in[3:2];
+//    wire        output_en      = uio_in[4];
+//    wire [1:0]  output_sel     = uio_in[6:5];
+//
+//    wire [7:0] out_data;
+//    wire       done;
+//
+//    // Instantiate controller
+//    controller ctrl (
+//        .clk(clk),
+//        .rst(~rst_n),
+//        .load_en(load_en),
+//        .load_sel_ab(load_sel_ab),
+//        .load_index(load_index),
+//        .in_data(ui_in),
+//        .output_en(output_en),
+//        .output_sel(output_sel),
+//        .out_data(out_data),
+//        .done(done)
+//    );
+//
+//    assign uo_out   = out_data;
+//    assign uio_out  = {done, 7'b0};
+//    assign uio_oe   = 8'b10000000;
 
-    wire [7:0] out_data;
-    wire       done;
-
-    // Instantiate controller
-    controller ctrl (
-        .clk(clk),
-        .rst(~rst_n),
-        .load_en(load_en),
-        .load_sel_ab(load_sel_ab),
-        .load_index(load_index),
-        .in_data(ui_in),
-        .output_en(output_en),
-        .output_sel(output_sel),
-        .out_data(out_data),
-        .done(done)
-    );
-
-    assign uo_out   = out_data;
-    assign uio_out  = {done, 7'b0};
-    assign uio_oe   = 8'b10000000;
-
-    wire _unused = &{ena, uio_in[7]};
+    wire _unused = &{ena, ui_in[7], uo_out[7], uio_in[7], uio_out[7], uio_oe[7], clk , rst_n};
 
 endmodule
