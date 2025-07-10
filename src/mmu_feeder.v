@@ -9,7 +9,7 @@ module mmu_feeder (
   input wire [7:0] weight_0,
   input wire [7:0] weight_1,
   input wire [7:0] weight_2,
-  input wire [7:0] weight_3
+  input wire [7:0] weight_3,
 
   input wire [7:0] input_0,
   input wire [7:0] input_1,
@@ -19,16 +19,16 @@ module mmu_feeder (
   input wire [7:0] c_0,
   input wire [7:0] c_1,
   input wire [7:0] c_2,
-  input wire [7:0] c_3
+  input wire [7:0] c_3,
 
-  output clear,
+  output reg clear,
   output reg [7:0] a_data0,
   output reg [7:0] a_data1,
   output reg [7:0] b_data0,
   output reg [7:0] b_data1,
 
   output wire host_mat_wb,
-  output reg [7:0] host_outdata,
+  output reg [7:0] host_outdata
 );
 
   reg [7:0] out_buf;
@@ -55,7 +55,7 @@ module mmu_feeder (
          * outputting is staggered since only one output per cycle (tt) 
          * => +1 cycle
          **/
-        case (mmu_cycle)
+        case (mmu_cycles)
           3'b000: begin
             a_data0  <= input_0;   
             a_data1  <= 8'b0;         
@@ -80,7 +80,7 @@ module mmu_feeder (
             b_data0  <= 8'b0;          
             b_data1  <= weight_3;   
 
-            host_outdata <= c0;
+            host_outdata <= c_0;
           end
 
           3'b011: begin
@@ -89,7 +89,7 @@ module mmu_feeder (
             b_data0 <= 0;       
             b_data1 <= 0;   
 
-            host_outdata <= c1;
+            host_outdata <= c_1;
             out_buf <= c2;
           end
 
@@ -99,7 +99,7 @@ module mmu_feeder (
             b_data0 <= 0;       
             b_data1 <= 0;   
 
-            host_outdata <= c2;
+            host_outdata <= c_2;
             out_buf <= c3;
           end
 
@@ -109,7 +109,7 @@ module mmu_feeder (
             b_data0 <= 0;       
             b_data1 <= 0;   
 
-            host_outdata <= c3;
+            host_outdata <= c_3;
             out_buf <= 0;
           end
 

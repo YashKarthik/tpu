@@ -15,17 +15,15 @@ module control_unit (
   // MMU feeding control
   output reg feeding_en,
   output reg [2:0] mmu_cycles,
-  
-  output reg done
 );
 
   // STATES
-  localparam[1:0] S_IDLE        = 2'b00;
-  localparam[1:0] S_LOAD_MATS   = 2'b01;
-  localparam[1:0] S_MMU_FEED_OMPUTE_WB      = 2'b10;
+  localparam[1:0] S_IDLE                  = 2'b00;
+  localparam[1:0] S_LOAD_MATS             = 2'b01;
+  localparam[1:0] S_MMU_FEED_COMPUTE_WB   = 2'b10;
 
   reg[1:0] state, next_state;
-  reg[1:0] mat_elems_loaded;
+  reg[2:0] mat_elems_loaded;
 
   // Next state logic
   always @(*) begin
@@ -57,7 +55,7 @@ module control_unit (
          * => +1 cycle
          **/
         if (mmu_cycles == 3'b101) begin
-          state <= S_IDLE;
+          next_state <= S_IDLE;
         end
       end
     endcase
@@ -69,6 +67,7 @@ module control_unit (
       state <= S_IDLE;
       mat_elems_loaded <= 0;
       mmu_cycles <= 0;
+      feeding_en <= 0;,
 
       host_req_mat <= 0;
       wm_load_mat <= 0;
