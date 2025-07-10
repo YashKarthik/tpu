@@ -4,45 +4,84 @@ module control_unit (
   input wire clk,
   input wire rst_n,
   input wire start,
-  input wire [3:0] instr, 
-
-  output wire host_req_mat,
-  output wire host_mat_wb,
-  output wire load_mmu,
-  output wire wm_load_mat,
-  output wire [2:0] wm_addr,
+  //input wire mmu_done,
+  
+  // Host interface
+  output reg host_req_mat,
+  output reg host_mat_wb,
+  
+  // Weight memory interface  
+  output reg wm_load_mat,
+  output reg [2:0] wm_addr,
+  
+  // MMU feeding control
+  output reg [1:0] mmu_cycles,
+  output reg [1:0] feed_cycle,
+  output reg feeding_active,
+  
+  output reg done
 );
 
   // STATES
-  localparam[1:0] S_IDLE          = 2'b00;
-  localparam[1:0] S_LOAD_MATS  = 2'b01;
-  localparam[1:0] S_COMPUTE       = 2'b10;
-  localparam[1:0] S_WRITEBACK     = 2'b11;
+  localparam[1:0] S_IDLE        = 2'b00;
+  localparam[1:0] S_LOAD_MATS   = 2'b01;
+  localparam[1:0] S_MMU_OP      = 2'b10;
 
-  reg[1:0] state;
-  reg[2:0] mat_elems_loaded;
-  reg[1:0] compute_cycles;
+  reg[1:0] state, next_state;
+  reg[1:0] mat_elems_loaded;
+
+  // Next state logic
+  always @(*) begin
+    next_state = state;
+    
+    case (state)
+      S_IDLE: begin
+        if (start) begin
+            next_state = S_LOAD_MATS;
+        end
+      end
+      
+      S_LOAD_MATS: begin
+        // All 8 elements loaded (4 for each matrix)
+        if (mat_elems_loaded == 3'b111) begin 
+            next_state = S_MMU_FEED_AND_COMPUTE;
+            mat_elems_loaded <= 0;
+        end
+      end
+      
+      S_MMU_FEED_AND_COMPUTE: begin
+        // 4 cycles of feeding & computing
+        if (mmu_cyles == 2'b11) begin
+            next_state = S_WRITEBACK;
+        end
+      end
+      
+      S_WRITEBACK: begin
+        if (wb_cycles == 3'b11) begin  // 4 results written back
+            next_state = S_IDLE;
+        end
+      end
+    endcase
+  end
   
   // State Machine
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       state <= S_IDLE;
+      mat_elems_loaded <= 0;
+      mmu_cycles <= 0;
+
       host_req_mat <= 0;
       host_mat_wb <= 0;
       load_mmu <= 0;
       wm_load_mat <= 0;
-      wm_addr <= 3'b000;
+      wm_addr <= 2'b00;
 
     end else begin
+      state <= next_state;
 
       case (state)
         S_IDLE:
-          if (start) begin
-            state <= state + 1;
-          end else begin
-            state <= state;
-          end
-
           host_req_mat <= 0;
           host_mat_wb <= 0;
           load_mmu <= 0;
@@ -52,10 +91,7 @@ module control_unit (
         S_LOAD_MATS: begin
           if (host_req_mat) begin
             mat_elems_loaded <= mat_elems_loaded + 1;
-          end
-
-          if (mat_elems_loaded == 3'b111 ) begin
-            state <= state + 1;
+          end else begin
             mat_elems_loaded <= 0;
           end
 
@@ -66,32 +102,33 @@ module control_unit (
           wm_addr <= mat_elems_loaded;
         end
 
-        S_COMPUTE:
+        S_MMU_FEED_AND_COMPUTE:
           host_req_mat <= 0;
           host_mat_wb <= 0;
           load_mmu <= 1;
+
           wm_load_mat <= 0;
           wm_addr <= 0;
 
-          if (compute_cycles == 3'b10) begin
+          if (mmu_cycles == 3'b10) begin
             state <= state + 1;
           end
 
-          compute_cycles <= compute_cycles + 1;
+          mmu_cycles <= mmu_cycles + 1;
 
-        S_WRITEBACK:
-          if (mat_elems_loaded == 3'b111 ) begin
-            state <= S_IDLE;
-          end else begin
-            host_mat_wb <= 1;
+        //S_WRITEBACK:
+        //  if (mat_elems_loaded == 3'b111 ) begin
+        //    state <= S_IDLE;
+        //  end else begin
+        //    host_mat_wb <= 1;
 
-            host_req_mat <= 0;
-            load_mmu <= 0;
-            wm_load_mat <= 0;
-            wm_addr <= mat_elems_loaded;
+        //    host_req_mat <= 0;
+        //    load_mmu <= 0;
+        //    wm_load_mat <= 0;
+        //    wm_addr <= mat_elems_loaded;
 
-            mat_elems_loaded <= mat_elems_loaded + 1;
-          end
+        //    mat_elems_loaded <= mat_elems_loaded + 1;
+        //  end
 
     end
   end
