@@ -6,7 +6,7 @@
 `default_nettype none
 
 module tt_um_tpu (
-    input  wire [7:0] ui_in,      // data input
+    input  wire signed [7:0] ui_in,      // data input
     output wire [7:0] uo_out,     // data output (lower 8 bits of result)
     input  wire [7:0] uio_in,     // control input
     output wire [7:0] uio_out,    // done signal on uio_out[7]
