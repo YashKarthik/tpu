@@ -13,13 +13,44 @@ module controller (
     output wire               done
 );
 
+    function [7:0] bf16_to_fp8;
+        input [15:0] in;
+        reg sign;
+        reg [7:0] absval;
+        reg [3:0] exp;
+        reg [2:0] mant;
+        reg [3:0] shift_pos;
+        begin
+            sign = in[15];
+            absval = sign ? -in[14:7] : in[14:7];
+
+            if (absval == 0) begin
+                bf16_to_fp8 = 8'd0;
+            end else begin
+                shift_pos = 0;
+                if (absval[7]) shift_pos = 7;
+                else if (absval[6]) shift_pos = 6;
+                else if (absval[5]) shift_pos = 5;
+                else if (absval[4]) shift_pos = 4;
+                else if (absval[3]) shift_pos = 3;
+                else if (absval[2]) shift_pos = 2;
+                else if (absval[1]) shift_pos = 1;
+                else if (absval[0]) shift_pos = 0;
+
+                exp = shift_pos + 4'd7;  // bias = 7
+                mant = absval >> (shift_pos - 3); // top 3 bits
+                bf16_to_fp8 = {sign, exp, mant};
+            end
+        end
+    endfunction
+
     // Storage for A and B matrices
     reg [7:0] A [0:3];
     reg [7:0] B [0:3];
     reg [3:0] a_loaded, b_loaded;
 
     // Output registers
-    reg [7:0] C [0:3];
+    reg [15:0] C [0:3];
     reg [7:0] out_data_r;
     assign out_data = out_data_r;
 
@@ -27,7 +58,7 @@ module controller (
     reg [7:0] a_data0, b_data0, a_data1, b_data1;
 
     // Outputs from systolic array
-    wire [7:0] c00, c01, c10, c11;
+    wire [15:0] c00, c01, c10, c11;
 
     // FSM state
     typedef enum logic [1:0] {
@@ -148,7 +179,7 @@ module controller (
     always @(*) begin
         out_data_r = 0;
         if (output_en) begin
-            out_data_r = C[output_sel];
+            out_data_r = bf16_to_fp8(C[output_sel]);
         end
     end
 
