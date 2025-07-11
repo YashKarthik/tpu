@@ -5,7 +5,7 @@ module controller (
     input  wire               load_en,
     input  wire               load_sel_ab,
     input  wire        [1:0]  load_index,
-    input  wire signed [7:0]  in_data,
+    input  wire        [7:0]  in_data,
 
     input  wire               output_en,
     input  wire        [1:0]  output_sel,
@@ -19,7 +19,7 @@ module controller (
     reg [3:0] a_loaded, b_loaded;
 
     // Output registers
-    reg signed [15:0] C [0:3];
+    reg [7:0] C [0:3];
     reg [7:0] out_data_r;
     assign out_data = out_data_r;
 
@@ -27,7 +27,7 @@ module controller (
     reg [7:0] a_data0, b_data0, a_data1, b_data1;
 
     // Outputs from systolic array
-    wire [15:0] c00, c01, c10, c11;
+    wire [7:0] c00, c01, c10, c11;
 
     // FSM state
     typedef enum logic [1:0] {
@@ -148,17 +148,7 @@ module controller (
     always @(*) begin
         out_data_r = 0;
         if (output_en) begin
-            case (C[output_sel])
-                // Saturate to 8-bit signed range
-                default: begin
-                    if (C[output_sel] > 127)
-                        out_data_r = 8'sd127;
-                    else if (C[output_sel] < -128)
-                        out_data_r = -8'sd128;
-                    else
-                        out_data_r = C[output_sel][7:0];
-                end
-            endcase
+            out_data_r = C[output_sel];
         end
     end
 
