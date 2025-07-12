@@ -20,6 +20,8 @@ module controller (
         reg [3:0] exp;
         reg [2:0] mant;
         reg [3:0] shift_pos;
+        reg [7:0] shifted;
+        reg round_bit;
         begin
             sign = in[15];
             absval = sign ? -in[14:7] : in[14:7];
@@ -38,7 +40,13 @@ module controller (
                 else if (absval[0]) shift_pos = 0;
 
                 exp = shift_pos + 4'd7;  // bias = 7
-                mant = absval >> (shift_pos - 3); // top 3 bits
+                shifted = absval >> (shift_pos - 3);
+                round_bit = (absval >> (shift_pos - 4)) & 1'b1;
+                mant = shifted[2:0] + round_bit;
+                if (mant == 4'd8) begin
+                    mant = 3'd0;
+                    exp = exp + 1;
+                end
                 bf16_to_fp8 = {sign, exp, mant};
             end
         end
