@@ -1,17 +1,56 @@
 module controller (
-    input  wire        clk,
-    input  wire        rst,
+    input  wire               clk,
+    input  wire               rst,
 
-    input  wire        load_en,
-    input  wire        load_sel_ab,
-    input  wire [1:0]  load_index,
-    input  wire [7:0]  in_data,
+    input  wire               load_en,
+    input  wire               load_sel_ab,
+    input  wire        [1:0]  load_index,
+    input  wire        [7:0]  in_data,
 
-    input  wire        output_en,
-    input  wire [1:0]  output_sel,
-    output wire [7:0]  out_data,
-    output wire        done
+    input  wire               output_en,
+    input  wire        [1:0]  output_sel,
+    output wire        [7:0]  out_data,
+    output wire               done
 );
+
+    function [7:0] bf16_to_fp8;
+        input [15:0] in;
+        reg sign;
+        reg [7:0] absval;
+        reg [3:0] exp;
+        reg [2:0] mant;
+        reg [3:0] shift_pos;
+        reg [7:0] shifted;
+        reg round_bit;
+        begin
+            sign = in[15];
+            absval = sign ? -in[14:7] : in[14:7];
+
+            if (absval == 0) begin
+                bf16_to_fp8 = 8'd0;
+            end else begin
+                shift_pos = 0;
+                if (absval[7]) shift_pos = 7;
+                else if (absval[6]) shift_pos = 6;
+                else if (absval[5]) shift_pos = 5;
+                else if (absval[4]) shift_pos = 4;
+                else if (absval[3]) shift_pos = 3;
+                else if (absval[2]) shift_pos = 2;
+                else if (absval[1]) shift_pos = 1;
+                else if (absval[0]) shift_pos = 0;
+
+                exp = shift_pos + 4'd7;  // bias = 7
+                shifted = absval >> (shift_pos - 3);
+                round_bit = (absval >> (shift_pos - 4)) & 1'b1;
+                mant = shifted[2:0] + round_bit;
+                if (mant == 4'd8) begin
+                    mant = 3'd0;
+                    exp = exp + 1;
+                end
+                bf16_to_fp8 = {sign, exp, mant};
+            end
+        end
+    endfunction
 
     // Storage for A and B matrices
     reg [7:0] A [0:3];
@@ -113,7 +152,7 @@ module controller (
     end
 
     // Done signal
-    assign done = (state == OUTPUT);
+    assign done = (cycle_count == 2 && state == FEED);
 
     // Feeding logic
     always @(*) begin
@@ -148,7 +187,7 @@ module controller (
     always @(*) begin
         out_data_r = 0;
         if (output_en) begin
-            out_data_r = C[output_sel][7:0];
+            out_data_r = bf16_to_fp8(C[output_sel]);
         end
     end
 

@@ -15,6 +15,8 @@ Then they are fed either 2 or 4 at a time to the 2x2 systolic array containing 4
 
 Each PE will contain one of the output matrix values, which are all computed within 4 cycles, but for which output extraction for the top-left element can begin after just 3 cycles.
 
+Data movement between PE cells is naturally facilitated by the module connections established during chip fabrication, and once a value reaches a cell it is immediately processed into the multiply-add operation.
+
 ## How to test
 
 Enter the test directory at `test`.
