@@ -34,7 +34,9 @@ RTL_SOURCES = \
 TEST_BF16_SOURCES = $(PWD)/float_convert/tb_bf16_to_fp8.v
 TEST_TPU_SOURCES = $(PWD)/top_tpu/tb.v
 
-.PHONY: test-bf16 test-tpu cleanall
+.PHONY: all test-bf16 test-tpu cleanall
+
+all: test-bf16 test-tpu
 
 test-bf16:
 	$(MAKE) clean
@@ -44,7 +46,7 @@ test-bf16:
 		VERILOG_SOURCES="$(TEST_BF16_SOURCES) $(SRC_DIR)/bf16_to_fp8.v" \
 		PYTHONPATH=$(PWD)/float_convert \
 		WAVES_DIR=$(PWD)/float_convert/wave \
-		COMPILE_ARGS=-I$(SRC_DIR)
+		COMPILE_ARGS=-I$(SRC_DIR) \
 		SIM_BUILD=$(SIM_BUILD)
 
 test-tpu:
@@ -55,13 +57,10 @@ test-tpu:
 		VERILOG_SOURCES="$(TEST_TPU_SOURCES) $(RTL_SOURCES)" \
 		PYTHONPATH=$(PWD)/top_tpu \
 		WAVES_DIR=$(PWD)/top_tpu/wave \
-		COMPILE_ARGS=-I$(SRC_DIR)
+		COMPILE_ARGS=-I$(SRC_DIR) \
 		SIM_BUILD=$(SIM_BUILD)
-
 
 cleanall:
 	rm -rf sim_build* results.xml __pycache__ *.vcd */*.vcd
-
-all: test-bf16 test-tpu
 
 include $(shell cocotb-config --makefiles)/Makefile.sim

@@ -204,6 +204,22 @@ module FP8_PE (
     reg [6:0] result_mant;
 
     always @(*) begin
+        // Default assignments to prevent latch inference
+        exp_max = 0;
+        exp_diff = 0;
+        mant_a_ext = 0;
+        mant_b_ext = 0;
+        aligned_mant_a = 0;
+        aligned_mant_b = 0;
+        sum_mant_signed = 0;
+        add_result_sign = 0;
+        abs_sum_mant = 0;
+        shift_amount = 0;
+        normalized_mant = 0;
+        result_exp_temp = 0;
+        result_mant = 0;
+        next_c_out = 0;
+
         if (acc_is_nan || product_is_nan) begin
             next_c_out = {1'b0, 8'hFF, 7'h40}; // NaN
         end else if (acc_is_inf) begin
@@ -235,7 +251,7 @@ module FP8_PE (
 
             // Signed addition
             sum_mant_signed = (acc_sign ? -{1'b0, aligned_mant_a} : {1'b0, aligned_mant_a}) + 
-                            (product_sign ? -{1'b0, aligned_mant_b} : {1'b0, aligned_mant_b});
+                              (product_sign ? -{1'b0, aligned_mant_b} : {1'b0, aligned_mant_b});
             add_result_sign = sum_mant_signed < 0;
             abs_sum_mant = add_result_sign ? -sum_mant_signed[15:0] : sum_mant_signed[15:0];
 
