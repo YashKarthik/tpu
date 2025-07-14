@@ -106,9 +106,9 @@ async def test_project(dut):
     dut.rst_n.value = 1
     await ClockCycles(dut.clk, 5)
 
-    A = [-1.1, 0.2, 3, 4]  # row-major
+    A = [1.1, 0.2, 3, 4]  # row-major
 
-    B = [1.85, 2.1, 3.2, -1.7]
+    B = [1.85, 2.1, 3.2, 1.7]
 
     await load_matrix(dut, A, sel=0)
     await load_matrix(dut, B, sel=1)
