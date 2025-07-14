@@ -193,6 +193,20 @@ module FP8_PE (
 
     reg [15:0] next_c_out;
 
+    // Helper regs/wires
+    reg [7:0] exp_max;
+    reg [7:0] exp_diff;
+    reg [15:0] mant_a_ext;
+    reg [15:0] mant_b_ext;
+    reg [15:0] aligned_mant_a;
+    reg [15:0] aligned_mant_b;
+    reg signed [16:0] sum_mant_signed;
+    reg result_sign;
+    reg [15:0] abs_sum_mant;
+    reg [4:0] shift_amount;
+
+    integer i;
+
     always @(*) begin
         if (acc_is_nan || product_is_nan) begin
             next_c_out = {1'b0, 8'hFF, 7'h40}; // NaN
@@ -212,26 +226,24 @@ module FP8_PE (
             next_c_out = c_out;
         end else begin
             // Normal addition
-            wire [7:0] exp_max = (acc_exp > product_exp) ? acc_exp : product_exp;
-            wire [7:0] exp_diff = exp_max - (acc_exp < product_exp ? acc_exp : product_exp);
+            exp_max = (acc_exp > product_exp) ? acc_exp : product_exp;
+            exp_diff = exp_max - ((acc_exp < product_exp) ? acc_exp : product_exp);
 
             // Extend mantissas
-            wire [15:0] mant_a_ext = {1'b1, acc_mant, 7'b0};
-            wire [15:0] mant_b_ext = {1'b1, product_mant, 7'b0};
+            mant_a_ext = {1'b1, acc_mant, 7'b0};
+            mant_b_ext = {1'b1, product_mant, 7'b0};
 
             // Align mantissas
-            wire [15:0] aligned_mant_a = (acc_exp >= product_exp) ? mant_a_ext : (exp_diff > 15 ? 0 : mant_a_ext >> exp_diff);
-            wire [15:0] aligned_mant_b = (product_exp >= acc_exp) ? mant_b_ext : (exp_diff > 15 ? 0 : mant_b_ext >> exp_diff);
+            aligned_mant_a = (acc_exp >= product_exp) ? mant_a_ext : (exp_diff > 15 ? 0 : mant_a_ext >> exp_diff);
+            aligned_mant_b = (product_exp >= acc_exp) ? mant_b_ext : (exp_diff > 15 ? 0 : mant_b_ext >> exp_diff);
 
             // Signed addition
-            wire signed [16:0] sum_mant_signed = (acc_sign ? -aligned_mant_a : aligned_mant_a) + 
-                                                 (product_sign ? -aligned_mant_b : aligned_mant_b);
-            wire result_sign = sum_mant_signed < 0;
-            wire [15:0] abs_sum_mant = result_sign ? -sum_mant_signed : sum_mant_signed;
+            sum_mant_signed = (acc_sign ? -{1'b0, aligned_mant_a} : {1'b0, aligned_mant_a}) + 
+                            (product_sign ? -{1'b0, aligned_mant_b} : {1'b0, aligned_mant_b});
+            result_sign = sum_mant_signed < 0;
+            abs_sum_mant = result_sign ? -sum_mant_signed[15:0] : sum_mant_signed[15:0];
 
             // Normalization (simplified)
-            reg [4:0] shift_amount;
-            integer i;
             shift_amount = 0;
             for (i = 15; i >= 0; i = i - 1) begin
                 if (abs_sum_mant[i]) begin
