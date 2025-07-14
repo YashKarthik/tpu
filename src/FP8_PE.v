@@ -34,9 +34,8 @@ module FP8_PE (
 
     // BF16 normalization and rounding signals
     reg [3:0] norm_shift_amount;
-    reg signed [8:0] bf16_exp_unbiased; // Increased to 9 bits to handle full range
-    reg [15:0] bf16_mantissa_pre_norm; // Full 16-bit mantissa before rounding
-    wire guard_bit_bf16, round_bit_bf16, sticky_bit_bf16;
+    reg signed [8:0] bf16_exp_unbiased;
+    reg [15:0] bf16_mantissa_pre_norm;
     reg [6:0] bf16_mantissa_final;
     reg bf16_exp_inc_for_rounding;
     reg [7:0] bf16_exp_biased;
@@ -46,7 +45,7 @@ module FP8_PE (
     always @(*) begin
         if (exp_a == 4'b0000) begin
             if (mant_a == 3'b000) begin // Zero
-                unbiased_exp_a = -6'd63; // Marker for zero
+                unbiased_exp_a = -6'd63;
                 effective_mant_a = 8'b0;
             end else begin // Subnormal
                 unbiased_exp_a = -6'd6;
@@ -125,7 +124,6 @@ module FP8_PE (
                 bf16_exp_unbiased = product_unbiased_exp_raw + 1;
                 bf16_mantissa_pre_norm = product_mantissa_raw >> 1;
             end else begin
-                // Find leading one (simplified priority encoder)
                 if (product_mantissa_raw[14]) norm_shift_amount = 0;
                 else if (product_mantissa_raw[13]) norm_shift_amount = 1;
                 else if (product_mantissa_raw[12]) norm_shift_amount = 2;
@@ -145,12 +143,9 @@ module FP8_PE (
                 bf16_mantissa_pre_norm = product_mantissa_raw << norm_shift_amount;
             end
 
-            // Rounding
-            assign guard_bit_bf16 = bf16_mantissa_pre_norm[7];
-            assign round_bit_bf16 = bf16_mantissa_pre_norm[6];
-            assign sticky_bit_bf16 = |bf16_mantissa_pre_norm[5:0];
+            // Rounding (directly using bits)
             bf16_mantissa_final = bf16_mantissa_pre_norm[14:8];
-            if (guard_bit_bf16 && (round_bit_bf16 || sticky_bit_bf16 || bf16_mantissa_final[0])) begin
+            if (bf16_mantissa_pre_norm[7] && (bf16_mantissa_pre_norm[6] || |bf16_mantissa_pre_norm[5:0] || bf16_mantissa_final[0])) begin
                 bf16_mantissa_final = bf16_mantissa_final + 1;
                 if (bf16_mantissa_final == 0) begin
                     bf16_exp_inc_for_rounding = 1;
@@ -193,7 +188,7 @@ module FP8_PE (
 
     reg [15:0] next_c_out;
 
-    // Helper regs/wires
+    // Helper regs for addition
     reg [7:0] exp_max;
     reg [7:0] exp_diff;
     reg [15:0] mant_a_ext;
@@ -201,11 +196,12 @@ module FP8_PE (
     reg [15:0] aligned_mant_a;
     reg [15:0] aligned_mant_b;
     reg signed [16:0] sum_mant_signed;
-    reg result_sign;
+    reg add_result_sign; // Separate reg for addition result sign
     reg [15:0] abs_sum_mant;
     reg [4:0] shift_amount;
-
-    integer i;
+    reg [15:0] normalized_mant;
+    reg [8:0] result_exp_temp;
+    reg [6:0] result_mant;
 
     always @(*) begin
         if (acc_is_nan || product_is_nan) begin
@@ -240,30 +236,40 @@ module FP8_PE (
             // Signed addition
             sum_mant_signed = (acc_sign ? -{1'b0, aligned_mant_a} : {1'b0, aligned_mant_a}) + 
                             (product_sign ? -{1'b0, aligned_mant_b} : {1'b0, aligned_mant_b});
-            result_sign = sum_mant_signed < 0;
-            abs_sum_mant = result_sign ? -sum_mant_signed[15:0] : sum_mant_signed[15:0];
+            add_result_sign = sum_mant_signed < 0;
+            abs_sum_mant = add_result_sign ? -sum_mant_signed[15:0] : sum_mant_signed[15:0];
 
-            // Normalization (simplified)
-            shift_amount = 0;
-            for (i = 15; i >= 0; i = i - 1) begin
-                if (abs_sum_mant[i]) begin
-                    shift_amount = 15 - i;
-                end
-            end
+            // Normalization with priority encoder
+            if (abs_sum_mant[15]) shift_amount = 0;
+            else if (abs_sum_mant[14]) shift_amount = 1;
+            else if (abs_sum_mant[13]) shift_amount = 2;
+            else if (abs_sum_mant[12]) shift_amount = 3;
+            else if (abs_sum_mant[11]) shift_amount = 4;
+            else if (abs_sum_mant[10]) shift_amount = 5;
+            else if (abs_sum_mant[9]) shift_amount = 6;
+            else if (abs_sum_mant[8]) shift_amount = 7;
+            else if (abs_sum_mant[7]) shift_amount = 8;
+            else if (abs_sum_mant[6]) shift_amount = 9;
+            else if (abs_sum_mant[5]) shift_amount = 10;
+            else if (abs_sum_mant[4]) shift_amount = 11;
+            else if (abs_sum_mant[3]) shift_amount = 12;
+            else if (abs_sum_mant[2]) shift_amount = 13;
+            else if (abs_sum_mant[1]) shift_amount = 14;
+            else shift_amount = 15;
 
-            wire [15:0] normalized_mant = abs_sum_mant << shift_amount;
-            wire [8:0] result_exp_temp = exp_max - shift_amount;
-            wire [6:0] result_mant = normalized_mant[14:8];
+            normalized_mant = abs_sum_mant << shift_amount;
+            result_exp_temp = exp_max - shift_amount;
+            result_mant = normalized_mant[14:8];
 
             // Final result
             if (sum_mant_signed == 0) begin
-                next_c_out = {result_sign, 8'b0, 7'b0};
+                next_c_out = {add_result_sign, 8'b0, 7'b0};
             end else if (result_exp_temp >= 255) begin
-                next_c_out = {result_sign, 8'hFF, 7'b0};
+                next_c_out = {add_result_sign, 8'hFF, 7'b0};
             end else if (result_exp_temp <= 0) begin
-                next_c_out = {result_sign, 8'b0, 7'b0};
+                next_c_out = {add_result_sign, 8'b0, 7'b0};
             end else begin
-                next_c_out = {result_sign, result_exp_temp[7:0], result_mant};
+                next_c_out = {add_result_sign, result_exp_temp[7:0], result_mant};
             end
         end
     end

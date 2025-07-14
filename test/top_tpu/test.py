@@ -121,6 +121,8 @@ async def test_project(dut):
     
     results = await read_output(dut)
 
+    dut._log.info(expected)
+
     # ------------------------------
     # STEP 5: Check results
     for i in range(4):
