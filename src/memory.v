@@ -1,18 +1,22 @@
 `default_nettype none
 
-module weight_memory(
+module memory(
     input wire clk,
     input wire rst,
-    input wire mem_ctrl_en,
-    input wire [1:0] addr,
+    input wire wm_load_mat,
+    input wire [2:0] addr,
     input reg [7:0] rpi_weights,
     output reg [7:0] weight_1,
     output reg [7:0] weight_2,
     output reg [7:0] weight_3,
-    output reg [7:0] weight_4
+    output reg [7:0] weight_4,
+    output reg [7:0] mat_1,
+    output reg [7:0] mat_2,
+    output reg [7:0] mat_3,
+    output reg [7:0] mat_4
 );
 
-reg [7:0] intermediate_memory [3:0];
+reg [7:0] intermediate_memory [7:0];
 integer i;
 
 always @(posedge clk) begin
@@ -24,9 +28,13 @@ always @(posedge clk) begin
         weight_2 <= 8'b0;
         weight_3 <= 8'b0;
         weight_4 <= 8'b0;
+        mat_1 <= 8'b0;
+        mat_2 <= 8'b0;
+        mat_3 <= 8'b0;
+        mat_4 <= 8'b0;
     end
 
-    if (mem_ctrl_en) begin
+    if (wm_load_mat) begin
         intermediate_memory[addr] <= rpi_weights;
     end
 
@@ -34,6 +42,10 @@ always @(posedge clk) begin
     weight_2 <= intermediate_memory[1];
     weight_3 <= intermediate_memory[2];
     weight_4 <= intermediate_memory[3];
+    mat_1 <= intermediate_memory[4];
+    mat_2 <= intermediate_memory[5];
+    mat_3 <= intermediate_memory[6];
+    mat_4 <= intermediate_memory[7];
 end
 
 endmodule

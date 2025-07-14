@@ -16,37 +16,32 @@ module tt_um_tpu (
     input  wire       rst_n
 );
 
-    // Control signal decoding
-    wire        load_en        = uio_in[0];
-    wire        load_sel_ab    = uio_in[1];
-    wire [1:0]  load_index     = uio_in[3:2];
-    wire        output_en      = uio_in[4];
-    wire [1:0]  output_sel     = uio_in[6:5];
 
-    wire [7:0] out_data;
-    wire       done;
-    
-    wire [7:0] out1;
-    wire [7:0] out2;
-    wire [7:0] out3;
-    wire [7:0] out4;
+    wire const_load  = 1'b0;          // never write
+    wire [2:0] load_index = uio_in[2:0];
+    wire [7:0] w1, w2, w3, w4;
+    wire [7:0] m1, m2, m3, m4;
 
-    weight_memory wmem (
+    memory mem (
         .clk(clk),
         .rst(~rst_n),
-        .mem_ctrl_en(load_en),
+        .wm_load_mat(const_load),
         .addr(load_index),
         .rpi_weights(ui_in),
-        .weight_1(out1),
-        .weight_2(out2),
-        .weight_3(out3),
-        .weight_4(out4)
+        .weight_1(w1),
+        .weight_2(w2),
+        .weight_3(w3),
+        .weight_4(w4),
+        .mat_1(m1),
+        .mat_2(m2),
+        .mat_3(m3),
+        .mat_4(m4)
     );
 
-    assign uo_out   = out_data;
-    assign uio_out  = {done, 7'b0};
+    assign uo_out   = 8'b0;
+    assign uio_out  = 8'b0;
     assign uio_oe   = 8'b10000000;
 
-    wire _unused = &{ena, uio_in[7]};
+    wire _unused = &{ena, uio_in[7:3]};
 
 endmodule
