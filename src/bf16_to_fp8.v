@@ -13,9 +13,19 @@ module bf16_to_fp8 (
     reg overflow;
 
     always @(*) begin
+        // Initialize all variables to avoid latches
         sign = in_bf16[15];
         exp_bf16 = in_bf16[14:7];
         mant_bf16 = in_bf16[6:0];
+        exp_fp8 = 4'b0;
+        mant_fp8 = 3'b0;
+        guard = 1'b0;
+        round = 1'b0;
+        sticky = 1'b0;
+        mant_full = 10'b0;
+        exp_unbiased = 5'b0;
+        overflow = 1'b0;
+        out_fp8 = 8'b0;  // Default assignment
 
         if (exp_bf16 == 8'b0 && mant_bf16 == 0) begin
             // Zero
