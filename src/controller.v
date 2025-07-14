@@ -1,22 +1,30 @@
 module controller (
-    input  wire        clk,
-    input  wire        rst,
+    input  wire               clk,
+    input  wire               rst,
 
-    input  wire        load_en,
-    input  wire        load_sel_ab,
-    input  wire [1:0]  load_index,
-    input  wire [7:0]  in_data,
+    input  wire               load_en,
+    input  wire               load_sel_ab,
+    input  wire        [1:0]  load_index,
+    input  wire        [7:0]  in_data,
 
-    input  wire        output_en,
-    input  wire [1:0]  output_sel,
-    output wire [7:0]  out_data,
-    output wire        done
+    input  wire               output_en,
+    input  wire        [1:0]  output_sel,
+    output wire        [7:0]  out_data,
+    output wire               done
 );
 
     // Storage for A and B matrices
     reg [7:0] A [0:3];
     reg [7:0] B [0:3];
     reg [3:0] a_loaded, b_loaded;
+
+    reg [15:0] c_bf16;
+    wire [7:0] c_fp8;
+
+    bf16_to_fp8 conv_inst (
+        .in_bf16(c_bf16),
+        .out_fp8(c_fp8)
+    );
 
     // Output registers
     reg [15:0] C [0:3];
@@ -113,7 +121,7 @@ module controller (
     end
 
     // Done signal
-    assign done = (state == OUTPUT);
+    assign done = (cycle_count == 2 && state == FEED);
 
     // Feeding logic
     always @(*) begin
@@ -147,8 +155,10 @@ module controller (
     // Output MUX
     always @(*) begin
         out_data_r = 0;
+        c_bf16 = 16'b0;
         if (output_en) begin
-            out_data_r = C[output_sel][7:0];
+            c_bf16 = C[output_sel];
+            out_data_r = c_fp8;
         end
     end
 
