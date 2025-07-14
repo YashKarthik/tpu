@@ -2,65 +2,58 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, RisingEdge
 import numpy as np
-import struct
 
 def fp8_to_float_e4m3(b):
     """
     Convert 8-bit FP8 E4M3 byte to Python float.
     """
     sign = (b >> 7) & 0x1
-    exp = (b >> 3) & 0xF
+    exp  = (b >> 3) & 0xF
     mant = b & 0x7
+
     if exp == 0:
-        val = (mant / 8.0) * 2**(-6)  # Denormalized
+        # Subnormal: exp = -6, no implicit leading 1
+        val = (mant / 8.0) * 2**(-6)
+    elif exp == 0xF:
+        if mant == 0:
+            val = float('inf')
+        else:
+            val = float('nan')
     else:
+        # Normalized
         val = (1 + mant / 8.0) * 2**(exp - 7)
+
     return -val if sign else val
 
-def float_to_fp8_e4m3(x):
+def float_to_fp8_e4m3(value):
     """
-    Convert Python float to FP8 E4M3 byte.
-    Handles rounding and overflow/underflow properly.
+    Convert a Python float to FP8 (E4M3 format: 1 sign bit, 4 exponent bits, 3 mantissa bits).
+    Returns the FP8 value as an 8-bit integer and the reconstructed float value.
     """
-    # Special cases
-    if np.isnan(x):
-        return 0x7F  # canonical NaN
-    if np.isinf(x):
-        return 0x7C if x > 0 else 0xFC
-    if x == 0.0:
-        return 0x00 if np.signbit(x) == 0 else 0x80
-
-    sign = 0 if x >= 0 else 1
-    ax = abs(x)
-
-    # Subnormal threshold for E4M3: 2^-6 = 0.015625
-    if ax < 2**-6:
-        # Subnormal representation
-        scaled = int(round(ax / (2**-6) * 8))  # scale mantissa
-        if scaled == 0:
-            return sign << 7  # Zero
-        if scaled > 7:
-            scaled = 7
-        return (sign << 7) | scaled
-
-    # Normalized: compute exponent and mantissa
-    exp = int(np.floor(np.log2(ax)))
-    if exp < -6:
-        exp = -6  # underflow
-    if exp > 7:
-        exp = 7  # overflow to inf
-
-    mantissa_val = ax / (2 ** exp) - 1
-    mant = int(round(mantissa_val * 8))
-    if mant == 8:
-        mant = 0
-        exp += 1
-        if exp > 7:
-            # Overflow to Inf
-            return (sign << 7) | 0x78  # exp=0xF, mant=0
-
-    exp_bits = exp + 7
-    return (sign << 7) | (exp_bits << 3) | (mant & 0x7)
+    import math
+    if value == 0:
+        return 0, 0.0
+    if math.isnan(value) or math.isinf(value):
+        return 0x7F, float('nan')
+    sign = 1 if value < 0 else 0
+    value = abs(value)
+    if value != 0:
+        exponent = math.floor(math.log2(value))
+    else:
+        exponent = -7
+    exponent_bias = exponent + 7
+    mantissa = value / (2 ** exponent) - 1.0 if value != 0 else 0
+    mantissa_scaled = round(mantissa * 8)
+    if exponent_bias <= 0:
+        mantissa_scaled = round(value / (2 ** -6) * 8)
+        exponent_bias = 0
+        if mantissa_scaled >= 8:
+            mantissa_scaled = 7
+    elif exponent_bias > 15:
+        return (sign << 7) | 0x7F, float('inf') * (-1 if sign else 1)
+    mantissa_scaled = min(max(mantissa_scaled, 0), 7)
+    fp8 = (sign << 7) | (exponent_bias << 3) | mantissa_scaled
+    return fp8
 
 def get_expected_matmul(A, B):
     """
@@ -113,13 +106,9 @@ async def test_project(dut):
     dut.rst_n.value = 1
     await ClockCycles(dut.clk, 5)
 
-    # ------------------------------
-    # STEP 1: Load matrix A
-    A = [-1.1, 2, 3, 4]  # row-major
+    A = [-1.1, 0.2, 3, 4]  # row-major
 
-    # ------------------------------
-    # STEP 2: Load matrix B
-    B = [5, 2.1, 3.2, -1.7]
+    B = [1.85, 2.1, 3.2, -1.7]
 
     await load_matrix(dut, A, sel=0)
     await load_matrix(dut, B, sel=1)
@@ -135,7 +124,7 @@ async def test_project(dut):
     # ------------------------------
     # STEP 5: Check results
     for i in range(4):
-        assert np.isclose(results[i], expected[i], rtol=0.25, atol=1.0), \
+        assert np.isclose(results[i], expected[i], rtol=0.10, atol=1.0), \
             f"C[{i//2}][{i%2}] = {results[i]} != expected {expected[i]}"
     
     dut._log.info("Test 1 passed!")

@@ -21,6 +21,7 @@ project:
     - "systolic_array_2x2.v"
     - "controller.v"
     - "FP8_PE.v"
+    - "bf16_to_fp8.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).

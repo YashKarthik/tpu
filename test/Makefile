@@ -9,6 +9,7 @@ PROJECT_SOURCES = tpu.v
 PROJECT_SOURCES += systolic_array_2x2.v
 PROJECT_SOURCES += controller.v
 PROJECT_SOURCES += FP8_PE.v
+PROJECT_SOURCES += bf16_to_fp8.v
 
 ifneq ($(GATES),yes)
 

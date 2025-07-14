@@ -1,4 +1,4 @@
-// FP8 arithmetic processing element (with bf16 accumulation register)
+// FP8 arithmetic processing element (with accumulation register)
 module FP8_PE (
     input wire clk,
     input wire rst,
@@ -10,7 +10,7 @@ module FP8_PE (
     output reg [7:0] a_out,
     output reg [7:0] b_out,
 
-    output reg [15:0] c_out // bf16 accumualtion, converted to fp8 in only 1 hardware unit @ higher level modules
+    output reg [15:0] c_out
 );
 
     wire sign_a = a_in[7];
