@@ -155,6 +155,7 @@ module controller (
     // Output MUX
     always @(*) begin
         out_data_r = 0;
+        c_bf16 = 16'b0;
         if (output_en) begin
             c_bf16 = C[output_sel];
             out_data_r = c_fp8;
