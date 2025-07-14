@@ -6,6 +6,7 @@ module mmu_feeder (
   input wire en,
   input wire [2:0] mmu_cycles,
 
+  /* Memory module interface */
   input wire [7:0] weight_0,
   input wire [7:0] weight_1,
   input wire [7:0] weight_2,
@@ -16,17 +17,20 @@ module mmu_feeder (
   input wire [7:0] input_2,
   input wire [7:0] input_3,
 
+  /*  mmu -> feeder  */
   input wire [7:0] c_0,
   input wire [7:0] c_1,
   input wire [7:0] c_2,
   input wire [7:0] c_3,
 
+  /*  feeder -> mmu */
   output reg clear,
   output reg [7:0] a_data0,
   output reg [7:0] a_data1,
   output reg [7:0] b_data0,
   output reg [7:0] b_data1,
 
+  /*  feeder -> rpi */
   output wire host_mat_wb,
   output reg [7:0] host_outdata
 );
