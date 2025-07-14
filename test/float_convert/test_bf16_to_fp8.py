@@ -47,7 +47,7 @@ def float_to_fp8(value):
 
 @cocotb.test()
 async def test_bf16_to_fp8(dut):
-    test_vals = np.random.normal(loc=0.0, scale=1.0, size=50)
+    test_vals = np.random.normal(loc=0.0, scale=2.0, size=50)
     TOLERANCE = 0.30  # 5% relative error tolerance
 
     for i, val in enumerate(test_vals):

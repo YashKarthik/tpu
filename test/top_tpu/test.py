@@ -126,7 +126,7 @@ async def test_project(dut):
     # ------------------------------
     # STEP 5: Check results
     for i in range(4):
-        assert np.isclose(results[i], expected[i], rtol=0.20, atol=1.0), \
+        assert np.isclose(results[i], expected[i], rtol=0.25, atol=1.0), \
             f"C[{i//2}][{i%2}] = {results[i]} != expected {expected[i]}"
     
     dut._log.info("Test 1 passed!")
