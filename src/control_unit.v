@@ -52,6 +52,15 @@ module control_unit (
             end
             
             S_MMU_FEED_COMPUTE_WB: begin
+               /* Cycle 0: Start feeding data (a00×b00 starts)
+                * Cycle 1: First partial products computed, more data fed
+                * Cycle 2: c00 ready (a00×b00 + a01×b10), can be output
+                * Cycle 3: c01 and c10 ready simultaneously:
+                *          c01 = a00×b01 + a01×b11
+                *          c10 = a10×b00 + a11×b10
+                * Cycle 4: c11 ready (a10×b01 + a11×b11), can be output
+                * Cycle 5: All outputs remain valid
+                */
                 if (mmu_cycle == 3'b101) begin
                     next_state = S_IDLE;
                 end
