@@ -5,10 +5,12 @@
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
-PROJECT_SOURCES = tpu.v
-PROJECT_SOURCES += systolic_array_2x2.v
-PROJECT_SOURCES += controller.v
-PROJECT_SOURCES += PE.v
+PROJECT_SOURCES = tpu.v \
+ 				  	systolic_array_2x2.v \
+					control_unit.v \
+					PE.v \
+					mmu_feeder.v \
+					memory.v
 
 ifneq ($(GATES),yes)
 

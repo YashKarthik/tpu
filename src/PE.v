@@ -5,13 +5,13 @@ module PE #(
     input wire rst,
     input wire clear, // clears accumulators between computations...
 
-    input wire [WIDTH-1:0] a_in,
-    input wire [WIDTH-1:0] b_in,
+    input wire signed [WIDTH-1:0] a_in,
+    input wire signed [WIDTH-1:0] b_in,
 
     output reg [WIDTH-1:0] a_out,
     output reg [WIDTH-1:0] b_out,
 
-    output reg [2*WIDTH-1:0] c_out
+    output reg signed [2*WIDTH-1:0] c_out
 );
 
     always @(posedge clk or posedge rst) begin

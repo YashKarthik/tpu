@@ -19,8 +19,10 @@ project:
   source_files:
     - "tpu.v"
     - "systolic_array_2x2.v"
-    - "controller.v"
     - "PE.v"
+    - "memory.v"
+    - "control_unit.v"
+    - "mmu_feeder.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).
@@ -48,12 +50,12 @@ pinout:
 
   # Bidirectional pins
   uio[0]: "LOAD_EN (input)"
-  uio[1]: "LOAD_SEL_AB (input)"
-  uio[2]: "LOAD_SEL_INDEX[0] (input)"
-  uio[3]: "LOAD_SEL_INDEX[1] (output)"
-  uio[4]: "OUTPUT_EN (input)"
-  uio[5]: "OUTPUT_SEL[0] (input)"
-  uio[6]: "OUTPUT_SEL[1] (input)"
+  uio[1]: ""
+  uio[2]: ""
+  uio[3]: ""
+  uio[4]: ""
+  uio[5]: ""
+  uio[6]: ""
   uio[7]: "DONE (output)"
 
 # Do not change!
