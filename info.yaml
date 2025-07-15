@@ -20,6 +20,7 @@ project:
     - "tpu.v"
     - "systolic_array_2x2.v"
     - "PE.v"
+    - "memory.v"
     - "control_unit.v"
     - "mmu_feeder.v"
 
