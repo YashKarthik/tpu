@@ -18,24 +18,20 @@ module memory (
             for (i = 0; i < 8; i = i + 1) begin
                 sram[i] <= 8'b0;
             end
-            for (i = 0; i < 4; i = i + 1) begin
-                weights[i] <= 8'b0;
-                inputs[i] <= 8'b0;
-            end
         end else if (write_en) begin
             sram[addr] <= in_data;
-            $display("%0t: [memory] Write: addr=%b, in_data=%h, sram[%0d]=%h", $time, addr, in_data, addr, in_data);
         end
 
-        // Assign SRAM to output arrays
-        weights[0] <= sram[0];
-        weights[1] <= sram[1];
-        weights[2] <= sram[2];
-        weights[3] <= sram[3];
-        inputs[0] <= sram[4];
-        inputs[1] <= sram[5];
-        inputs[2] <= sram[6];
-        inputs[3] <= sram[7];
     end
+
+    // asynchronous read
+    assign weights[0] = sram[0];
+    assign weights[1] = sram[1];
+    assign weights[2] = sram[2];
+    assign weights[3] = sram[3];
+    assign inputs[0] = sram[4];
+    assign inputs[1] = sram[5];
+    assign inputs[2] = sram[6];
+    assign inputs[3] = sram[7];
 
 endmodule

@@ -31,6 +31,8 @@ module tt_um_tpu (
     wire [7:0] out_data; // sent to CPU
     // Ports of the systolic Array
     wire [7:0] a_data0, b_data0, a_data1, b_data1;
+
+    wire [1:0] output_sel;
     wire done;
 
     // Module Instantiations
@@ -51,7 +53,8 @@ module tt_um_tpu (
         .mem_load_mat(mem_load_mat),
         .mem_addr(mem_addr),
         .mmu_en(compute_en),
-        .mmu_cycle(compute_cycles)
+        .mmu_cycle(compute_cycles),
+        .output_select(output_sel)
     );
 
     systolic_array_2x2 mmu (
@@ -73,6 +76,7 @@ module tt_um_tpu (
         .rst(~rst_n),
         .en(compute_en),
         .compute_cycles(compute_cycles),
+        .output_sel(output_sel),
         .weights(weights),
         .inputs(inputs),
         .c_out(outputs),
