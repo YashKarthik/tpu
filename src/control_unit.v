@@ -11,7 +11,7 @@ module control_unit (
 
     // MMU feeding control
     output reg mmu_en,
-    output reg [2:0] mmu_cycle, // Renamed from mmu_cycle, adjusted to 3 bits
+    output reg [3:0] mmu_cycle, // Renamed from mmu_cycle, adjusted to 3 bits
 	output wire [1:0] output_select
 );
 
@@ -52,7 +52,7 @@ module control_unit (
             end
             
             S_MMU_FEED_COMPUTE_WB: begin
-                if (mmu_cycle == 3'b101) begin
+                if (mmu_cycle == 4'b1000) begin
                     next_state = S_IDLE;
                 end
             end
@@ -74,7 +74,6 @@ module control_unit (
             mem_addr <= 0;
         end else begin
             state <= next_state;
-			$display("Current state %d", state);
             case (state)
                 S_IDLE: begin
                     mat_elems_loaded <= 0;
@@ -90,7 +89,6 @@ module control_unit (
 
                 S_LOAD_MATS: begin
                     if (load_en) begin
-						$display("Loaded %d mats", mat_elems_loaded);
                         mat_elems_loaded <= mat_elems_loaded + 1;
                         mem_load_mat <= 1; // enable writes into memory
                         mem_addr <= {load_sel_ab, load_index}; // Decode instruction
@@ -101,8 +99,12 @@ module control_unit (
 
                     if (mat_elems_loaded == 3'b111) begin 
                         mat_elems_loaded <= 0;
+						mmu_cycle <= mmu_cycle + 1;
 					end else if(mat_elems_loaded == 3'b110) begin
-						mmu_en <= 1;
+						if (mmu_en)
+							mmu_cycle <= mmu_cycle + 1;
+						else
+							mmu_en <= 1;
 					end
                 end
 
