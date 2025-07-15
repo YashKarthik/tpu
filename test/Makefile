@@ -43,7 +43,7 @@ test-feeder:
 	$(MAKE) sim \
 		MODULE=test_mmu_feeder \
 		TOPLEVEL=tb \
-		VERILOG_SOURCES="$(TEST_BF16_SOURCES) $(SRC_DIR)/tb_mmu_feeder.v" \
+		VERILOG_SOURCES="$(TEST_MMU_FEEDER_SOURCES) $(SRC_DIR)/tb_mmu_feeder.v" \
 		PYTHONPATH=$(PWD)/mmu_feeder \
 		WAVES_DIR=$(PWD)/mmu_feeder/wave \
 		COMPILE_ARGS=-I$(SRC_DIR) \

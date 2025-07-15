@@ -16,34 +16,87 @@ module tt_um_tpu (
     input  wire       rst_n
 );
 
-//    // Control signal decoding
-//    wire        load_en        = uio_in[0];
-//    wire        load_sel_ab    = uio_in[1];
-//    wire [1:0]  load_index     = uio_in[3:2];
-//    wire        output_en      = uio_in[4];
-//    wire [1:0]  output_sel     = uio_in[6:5];
-//
-//    wire [7:0] out_data;
-//    wire       done;
-//
-//    // Instantiate controller
-//    controller ctrl (
-//        .clk(clk),
-//        .rst(~rst_n),
-//        .load_en(load_en),
-//        .load_sel_ab(load_sel_ab),
-//        .load_index(load_index),
-//        .in_data(ui_in),
-//        .output_en(output_en),
-//        .output_sel(output_sel),
-//        .out_data(out_data),
-//        .done(done)
-//    );
-//
-//    assign uo_out   = out_data;
-//    assign uio_out  = {done, 7'b0};
-//    assign uio_oe   = 8'b10000000;
+    wire [7:0] instruction = uio_in;
 
-    wire _unused = &{ena, ui_in[7], uo_out[7], uio_in[7], uio_out[7], uio_oe[7], clk , rst_n};
+    wire compute_en; // internal signal
+    reg clear; // reset of PEs only
+    wire [2:0] mem_addr; // 3-bit address for matrix and element selection
+    reg mem_load_mat;
+
+    wire [2:0] mmu_cycle; // compute/output cycle count, minimum 5, maximum ???
+
+    wire [7:0] weight0, weight1, weight2, weight3;
+    wire [7:0] input0, input1, input2, input3;
+
+    wire [15:0] outputs [0:3]; // raw accumulations (16-bit)
+    wire [7:0] out_data; // sent to CPU
+    // Ports of the systolic Array
+    wire [7:0] a_data0, b_data0, a_data1, b_data1;
+
+    wire [1:0] output_sel;
+    wire done;
+
+    // Module Instantiations
+    // memory mem (
+    //     .clk(clk),
+    //     .rst(~rst_n),
+    //     .write_en(mem_load_mat),
+    //     .addr(mem_addr),
+    //     .in_data(ui_in),
+    //     .weight0(weight0), .weight1(weight1), .weight2(weight2), .weight3(weight3),
+    //     .input0(input0), .input1(input1), .input2(input2), .input3(input3)
+    // );
+
+    control_unit central_ctrl (
+        .clk(clk),
+        .rst(~rst_n),
+        .instrn(instruction),
+        .mem_load_mat(mem_load_mat),
+        .mem_addr(mem_addr),
+        .mmu_en(compute_en),
+        .mmu_cycle(mmu_cycle),
+        .output_select(output_sel)
+    );
+
+    systolic_array_2x2 mmu (
+        .clk(clk),
+        .rst(~rst_n),
+        .clear(clear),
+        .a_data0(a_data0),
+        .a_data1(a_data1),
+        .b_data0(b_data0),
+        .b_data1(b_data1),
+        .c00(outputs[0]), 
+        .c01(outputs[1]), 
+        .c10(outputs[2]), 
+        .c11(outputs[3])
+    );
+
+    mmu_feeder compute_ctrl (
+        .clk(clk),
+        .rst(~rst_n),
+        .en(compute_en),
+        .mmu_cycle(mmu_cycle),
+        .output_sel(output_sel),
+        .weight0(weight0), .weight1(weight1), .weight2(weight2), .weight3(weight3),
+        .input0(input0), .input1(input1), .input2(input2), .input3(input3),
+        .c00(outputs[0]), 
+        .c01(outputs[1]), 
+        .c10(outputs[2]), 
+        .c11(outputs[3]),
+        .clear(clear),
+        .a_data0(a_data0),
+        .a_data1(a_data1),
+        .b_data0(b_data0),
+        .b_data1(b_data1),
+        .done(done),
+        .host_outdata(out_data)
+    );
+
+    assign uo_out = out_data;
+    assign uio_out = {done, 7'b0};
+    assign uio_oe = 8'b10000000;
+
+    wire _unused = &{ena, uio_in[7:3]};
 
 endmodule

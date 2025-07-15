@@ -84,7 +84,7 @@ async def test_project(dut):
     dut.mmu_cycles.value = 4
 
     dut.c_3.value = I[3] * W[3]  # Set c_3 value (data ready from mmu -> output_buf)
-    dut._log.info(f"Cycle 3: c10 = {dut.c_2.value.integer}")
+    dut._log.info(f"Cycle 4: c10 = {dut.c_2.value.integer}")
 
     await RisingEdge(dut.clk)
 
