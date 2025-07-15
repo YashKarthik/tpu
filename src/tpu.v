@@ -23,7 +23,7 @@ module tt_um_tpu (
     wire [2:0] mem_addr; // 3-bit address for matrix and element selection
     reg mem_load_mat;
 
-    wire [2:0] mmu_cycle;
+    wire [2:0] mmu_cycle; // compute/output cycle count, minimum 5, maximum ???
 
     wire [7:0] weight0, weight1, weight2, weight3;
     wire [7:0] input0, input1, input2, input3;

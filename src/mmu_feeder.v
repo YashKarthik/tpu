@@ -12,7 +12,7 @@ module mmu_feeder (
     input wire [7:0] input0, input1, input2, input3,
 
     /* systolic array -> feeder */
-    input wire [15:0] c00, c01, c10, c11,
+    input wire signed [15:0] c00, c01, c10, c11,
 
     /* feeder -> mmu */
     output reg clear,
@@ -28,7 +28,7 @@ module mmu_feeder (
 
     wire [7:0] weights [0:3];
     wire [7:0] inputs [0:3];
-    wire [15:0] c_out [0:3];
+    wire signed [15:0] c_out [0:3];
 
     assign weights[0] = weight0;
     assign weights[1] = weight1;
@@ -122,7 +122,12 @@ module mmu_feeder (
     always @(*) begin
         host_outdata <= 0;
         if (en) begin
-            host_outdata <= c_out[output_sel][7:0];
+            if (c_out[output_sel] > 127)
+                host_outdata <= 8'sd127;
+            else if (c_out[output_sel] < -128)
+                host_outdata <= -8'sd128;
+            else
+                host_outdata <= c_out[output_sel][7:0];
         end
     end
 

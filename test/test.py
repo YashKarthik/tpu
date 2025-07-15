@@ -25,14 +25,17 @@ async def load_matrix(dut, matrix, sel):
         dut.uio_in.value = 0
         await RisingEdge(dut.clk)
 
-async def read_output(dut):
+async def read_signed_output(dut):
+    # Wait for first outputs to propagate
+    await ClockCycles(dut.clk, 3)
     results = []
     for i in range(4):
         dut.uio_in.value = (i << 5) | (1 << 4)  # output_sel = i, output_en = 1
         await ClockCycles(dut.clk, 1)
-        val = dut.uo_out.value.integer
-        results.append(val)
-        dut._log.info(f"Read C[{i//2}][{i%2}] = {val}")
+        val_unsigned = dut.uo_out.value.integer
+        val_signed = val_unsigned if val_unsigned < 128 else val_unsigned - 256
+        results.append(val_signed)
+        dut._log.info(f"Read C[{i//2}][{i%2}] = {val_signed}")
     return results
 
 @cocotb.test()
@@ -67,12 +70,10 @@ async def test_project(dut):
 
     # ------------------------------
     # STEP 4: Read outputs
-    expected = [19, 22, 43, 50]
+    expected = get_expected_matmul(A, B)
     results = []
 
-    await ClockCycles(dut.clk, 3)  # Wait for systolic array to compute
-    
-    results = await read_output(dut)
+    results = await read_signed_output(dut)
 
     # ------------------------------
     # STEP 5: Check results
@@ -85,27 +86,20 @@ async def test_project(dut):
     ##### TEST RUN 2 - CHECK CLEARING #####
     
     # ------------------------------
-    # STEP 1: Load matrix A
-    # A = [[5, 6],
-    #      [7, 8]]
+    # STEP 1: Load matrices
+
     A = [5, 6, 7, 8]  # row-major
-    # ------------------------------
-    # STEP 2: Load matrix B
-    # B = [[9, 10],
-    #      [11, 12]]
-    B = [9, 10, 11, 12]  # row-major: [B00, B01, B10, B11]
+    B = [9, -12, 1, 2]  # row-major: [B00, B01, B10, B11]
 
     await load_matrix(dut, A, sel=0)
     await load_matrix(dut, B, sel=1)
 
     # ------------------------------
     # STEP 4: Read outputs
-    expected = [111, 122, 151, 166]
+    expected = get_expected_matmul(A, B)
     results = []
 
-    await ClockCycles(dut.clk, 3)  # Wait for systolic array to compute
-    
-    results = await read_output(dut)
+    results = await read_signed_output(dut)
 
     # ------------------------------
     # STEP 5: Check results
@@ -113,3 +107,24 @@ async def test_project(dut):
         assert results[i] == expected[i], f"C[{i//2}][{i%2}] = {results[i]} != expected {expected[i]}"
 
     dut._log.info("Test 2 passed!")
+
+    #########################################
+    ##### TEST RUN 3 - CHECK SIGNED OPS #####
+
+    A = [5, -6, 7, 8]  # row-major
+    B = [1, 2, 3, -4]  # row-major: [B00, B01, B10, B11]
+
+    await load_matrix(dut, A, sel=0)
+    await load_matrix(dut, B, sel=1)
+
+    expected = get_expected_matmul(A, B)
+    results = []
+
+    # Wait for systolic array to compute
+    
+    results = await read_signed_output(dut)
+
+    for i in range(4):
+        assert results[i] == expected[i], f"C[{i//2}][{i%2}] = {results[i]} != expected {expected[i]}"
+
+    dut._log.info("Test 3 passed!")
