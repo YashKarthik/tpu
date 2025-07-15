@@ -6,8 +6,8 @@ module memory (
     input wire write_en,
     input wire [2:0] addr, // MSB selects matrix (0: weights, 1: inputs), [1:0] selects element
     input wire [7:0] in_data, // Fixed from reg to wire to match tt_um_tpu.v
-    output reg [7:0] weights [0:3], // 2x2 matrix A elements, 1 byte each
-    output reg [7:0] inputs [0:3]   // 2x2 matrix B elements, 1 byte each
+    output wire [7:0] weights [0:3], // 2x2 matrix A elements, 1 byte each
+    output wire [7:0] inputs [0:3]   // 2x2 matrix B elements, 1 byte each
 );
 
     reg [7:0] sram [0:7]; // 8 locations: 0-3 for weights, 4-7 for inputs
@@ -24,6 +24,7 @@ module memory (
             end
         end else if (write_en) begin
             sram[addr] <= in_data;
+            $display("%0t: [memory] Write: addr=%b, in_data=%h, sram[%0d]=%h", $time, addr, in_data, addr, in_data);
         end
 
         // Assign SRAM to output arrays
