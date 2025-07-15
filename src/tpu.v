@@ -36,19 +36,6 @@ module tt_um_tpu (
     wire [1:0] output_sel;
     wire done;
 
-    wire [7:0] weights [0:3];
-    wire [7:0] inputs [0:3];
-
-    assign weights[0] = weight0;
-    assign weights[1] = weight1;
-    assign weights[2] = weight2;
-    assign weights[3] = weight3;
-
-    assign inputs[0] = input0;
-    assign inputs[1] = input1;
-    assign inputs[2] = input2;
-    assign inputs[3] = input3;
-
     // Module Instantiations
     memory mem (
         .clk(clk),
@@ -91,8 +78,8 @@ module tt_um_tpu (
         .en(compute_en),
         .compute_cycles(compute_cycles),
         .output_sel(output_sel),
-        .weights(weights),
-        .inputs(inputs),
+        .weight0(weight0), .weight1(weight1), .weight2(weight2), .weight3(weight3),
+        .input0(input0), .input1(input1), .input2(input2), .input3(input3),
         .c_out(outputs),
         .clear(clear),
         .a_data0(a_data0),
