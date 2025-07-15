@@ -12,7 +12,7 @@ module mmu_feeder (
     input wire [7:0] input0, input1, input2, input3,
 
     /* systolic array -> feeder */
-    input wire [15:0] c_out [0:3], // 16-bit accumulation
+    input wire [15:0] c00, c01, c10, c11,
 
     /* feeder -> mmu */
     output reg clear,
@@ -28,6 +28,7 @@ module mmu_feeder (
 
     wire [7:0] weights [0:3];
     wire [7:0] inputs [0:3];
+    wire [15:0] c_out [0:3];
 
     assign weights[0] = weight0;
     assign weights[1] = weight1;
@@ -38,6 +39,11 @@ module mmu_feeder (
     assign inputs[1] = input1;
     assign inputs[2] = input2;
     assign inputs[3] = input3;
+
+    assign c_out[0] = c00;
+    assign c_out[1] = c01;
+    assign c_out[2] = c10;
+    assign c_out[3] = c11;
 
     assign done = en && (compute_cycles >= 3'b010) && (compute_cycles <= 3'b101);
 
