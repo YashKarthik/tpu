@@ -30,7 +30,7 @@ async def read_signed_output(dut):
     await ClockCycles(dut.clk, 3)
     results = []
     for i in range(4):
-        dut.uio_in.value = (i << 5) | (1 << 4)  # output_sel = i, output_en = 1
+        dut.uio_in.value = 0
         await ClockCycles(dut.clk, 1)
         val_unsigned = dut.uo_out.value.integer
         val_signed = val_unsigned if val_unsigned < 128 else val_unsigned - 256

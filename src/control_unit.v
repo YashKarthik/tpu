@@ -3,7 +3,7 @@
 module control_unit (
     input wire clk,
     input wire rst,
-    input wire [7:0] instrn,
+    input wire instrn,
 
     // Memory interface  
     output reg mem_load_mat,
@@ -11,16 +11,11 @@ module control_unit (
 
     // MMU feeding control
     output reg mmu_en,
-    output reg [2:0] mmu_cycle, // Renamed from mmu_cycle, adjusted to 3 bits
-	output wire [1:0] output_select
+    output reg [2:0] mmu_cycle // Renamed from mmu_cycle, adjusted to 3 bits
 );
 
     // Instruction decoding
-    wire load_en = instrn[0];          // Bit 0: load enable
-    wire load_sel_ab = instrn[1];      // Bit 1: select A (weights) or B (inputs)
-    wire [1:0] load_index = instrn[3:2]; // Bits 2-3: element index (0-3)
-    wire output_en = instrn[4];        // Bit 4: output enable (not used here but decoded)
-    wire [1:0] output_sel = instrn[6:5]; // Bits 5-6: output element selection (not used here)
+    wire load_en = instrn;          // Bit 0: load enable
     // Bit 7: ignored as specified
 
     // STATES
@@ -30,8 +25,6 @@ module control_unit (
 
     reg [1:0] state, next_state;
     reg [2:0] mat_elems_loaded;
-
-	assign output_select = output_sel;
 
     // Next state logic
     always @(*) begin
@@ -89,18 +82,14 @@ module control_unit (
                     mmu_cycle <= 0;
                     mmu_en <= 0;
                     mem_load_mat <= load_en;
-                    if (load_en) begin
-                        mem_addr <= {load_sel_ab, load_index}; // Decode instruction
-                    end else begin
-                        mem_addr <= 0;
-                    end
+                    mem_addr <= 0;
                 end
 
                 S_LOAD_MATS: begin
                     if (load_en) begin
                         mat_elems_loaded <= mat_elems_loaded + 1;
                         mem_load_mat <= 1; // enable writes into memory
-                        mem_addr <= {load_sel_ab, load_index}; // Decode instruction
+                        mem_addr <= mat_elems_loaded + 1; // Decode instruction
                     end else begin
                         mem_load_mat <= 0;
                         mem_addr <= 0;
@@ -125,7 +114,7 @@ module control_unit (
                     mmu_en <= 0;
                     mem_load_mat <= load_en;
                     if (load_en) begin
-                        mem_addr <= {load_sel_ab, load_index}; // Decode instruction
+                        mem_addr <= 0;
                     end else begin
                         mem_addr <= 0;
                     end

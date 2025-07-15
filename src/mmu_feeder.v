@@ -5,7 +5,6 @@ module mmu_feeder (
     input wire rst,
     input wire en,
     input wire [2:0] mmu_cycle,
-    input wire [1:0] output_sel,
 
     /* Memory module interface */
     input wire [7:0] weight0, weight1, weight2, weight3,
@@ -47,6 +46,8 @@ module mmu_feeder (
 
     assign done = en && (mmu_cycle >= 3'b010) && (mmu_cycle <= 3'b101);
 
+    reg [1:0] output_count;
+
     always @(posedge clk or posedge rst) begin
         if (rst) begin
             clear <= 1;
@@ -54,16 +55,24 @@ module mmu_feeder (
             a_data1 <= 0;
             b_data0 <= 0;
             b_data1 <= 0;
+            output_count <= 0;
         end else begin
             if (en) begin
                 clear <= 0;
+
+                if (mmu_cycle >= 3) begin
+                    output_count <= output_count + 1;
+                end else begin
+                    output_count <= 0;
+                end
             
                 case (mmu_cycle)
                     3'b000: begin
                         a_data0  <= weights[0];   
                         a_data1  <= 8'b0;         
                         b_data0  <= inputs[0];   
-                        b_data1  <= 8'b0;     
+                        b_data1  <= 8'b0;
+                        output_count <= 0; 
                     end
 
                     3'b001: begin
@@ -115,6 +124,7 @@ module mmu_feeder (
                 a_data1 <= 0;
                 b_data0 <= 0;
                 b_data1 <= 0;
+                output_count <= 0;
             end
         end
     end
@@ -122,12 +132,12 @@ module mmu_feeder (
     always @(*) begin
         host_outdata <= 0;
         if (en) begin
-            if (c_out[output_sel] > 127)
+            if (c_out[output_count] > 127)
                 host_outdata <= 8'sd127;
-            else if (c_out[output_sel] < -128)
+            else if (c_out[output_count] < -128)
                 host_outdata <= -8'sd128;
             else
-                host_outdata <= c_out[output_sel][7:0];
+                host_outdata <= c_out[output_count][7:0];
         end
     end
 
