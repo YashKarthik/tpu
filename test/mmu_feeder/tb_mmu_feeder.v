@@ -5,7 +5,38 @@
    that can be driven / tested by the cocotb test.py.
 */
 module tb (
-  // TODO - add parameters for the testbench
+  input logic clk,
+  input logic rst_n,
+  input logic en,
+  input logic [2:0] mmu_cycles,
+
+  /* Memory module interface */
+  input logic [7:0] weight_0,
+  input logic [7:0] weight_1,
+  input logic [7:0] weight_2,
+  input logic [7:0] weight_3,
+
+  input logic [7:0] input_0,
+  input logic [7:0] input_1,
+  input logic [7:0] input_2,
+  input logic [7:0] input_3,
+
+  /*  mmu -> feeder  */
+  input logic [7:0] c_0,
+  input logic [7:0] c_1,
+  input logic [7:0] c_2,
+  input logic [7:0] c_3,
+
+  /*  feeder -> mmu */
+  output logic clear,
+  output logic [7:0] a_data0,
+  output logic [7:0] a_data1,
+  output logic [7:0] b_data0,
+  output logic [7:0] b_data1,
+
+  /*  feeder -> rpi */
+  output logic host_mat_wb,
+  output logic [7:0] host_outdata
 );
 
   // Dump the signals to a VCD file. You can view it with gtkwave or surfer.
@@ -15,25 +46,36 @@ module tb (
     #1;
   end
 
-  // Wire up the inputs and outputs:
-  reg clk;
-  reg rst_n;
-  reg ena;
-  reg [7:0] ui_in;
-  reg [7:0] uio_in;
-  wire [7:0] uo_out;
-  wire [7:0] uio_out;
-  wire [7:0] uio_oe;
+  // Instantiate the MMU feeder module
+  mmu_feeder dut (
+    .clk(clk),
+    .rst_n(rst_n),
+    .en(en),
+    .mmu_cycles(mmu_cycles),
 
-  tt_um_tpu tpu_project (
-      .ui_in  (ui_in),    // Dedicated inputs
-      .uo_out (uo_out),   // Dedicated outputs
-      .uio_in (uio_in),   // IOs: Input path
-      .uio_out(uio_out),  // IOs: Output path
-      .uio_oe (uio_oe),   // IOs: Enable path (active high: 0=input, 1=output)
-      .ena    (ena),      // enable - goes high when design is selected
-      .clk    (clk),      // clock
-      .rst_n  (rst_n)     // not reset
+    .weight_0(weight_0),
+    .weight_1(weight_1),
+    .weight_2(weight_2),
+    .weight_3(weight_3),
+
+    .input_0(input_0),
+    .input_1(input_1),
+    .input_2(input_2),
+    .input_3(input_3),
+
+    .c_0(c_0),
+    .c_1(c_1),
+    .c_2(c_2),
+    .c_3(c_3),
+
+    .clear(clear),
+    .a_data0(a_data0),
+    .a_data1(a_data1),
+    .b_data0(b_data0),
+    .b_data1(b_data1),
+
+    .host_mat_wb(host_mat_wb),
+    .host_outdata(host_outdata)
   );
 
 endmodule
