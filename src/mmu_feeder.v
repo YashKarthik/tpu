@@ -4,7 +4,7 @@ module mmu_feeder (
     input wire clk,
     input wire rst,
     input wire en,
-    input wire [3:0] compute_cycles,
+    input wire [2:0] mmu_cycle,
     input wire [1:0] output_sel,
 
     /* Memory module interface */
@@ -45,7 +45,7 @@ module mmu_feeder (
     assign c_out[2] = c10;
     assign c_out[3] = c11;
 
-    assign done = en && (compute_cycles >= 3'b010) && (compute_cycles <= 3'b101);
+    assign done = en && (mmu_cycle >= 3'b010) && (mmu_cycle <= 3'b101);
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
@@ -58,7 +58,7 @@ module mmu_feeder (
             if (en) begin
                 clear <= 0;
             
-                case (compute_cycles)
+                case (mmu_cycle)
                     3'b000: begin
                         a_data0  <= weights[0];   
                         a_data1  <= 8'b0;         
@@ -88,6 +88,13 @@ module mmu_feeder (
                     end
 
                     3'b100: begin
+                        a_data0 <= 0;      
+                        a_data1 <= 0;
+                        b_data0 <= 0;       
+                        b_data1 <= 0;
+                    end
+
+                    3'b101: begin
                         a_data0 <= 0;      
                         a_data1 <= 0;
                         b_data0 <= 0;       

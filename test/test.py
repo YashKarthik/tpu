@@ -33,8 +33,6 @@ async def read_output(dut):
         val = dut.uo_out.value.integer
         results.append(val)
         dut._log.info(f"Read C[{i//2}][{i%2}] = {val}")
-        dut.uio_in.value = 0
-        await ClockCycles(dut.clk, 1)
     return results
 
 @cocotb.test()
@@ -72,7 +70,7 @@ async def test_project(dut):
     expected = [19, 22, 43, 50]
     results = []
 
-    await ClockCycles(dut.clk, 1)  # Wait for systolic array to compute
+    await ClockCycles(dut.clk, 3)  # Wait for systolic array to compute
     
     results = await read_output(dut)
 
@@ -105,7 +103,7 @@ async def test_project(dut):
     expected = [111, 122, 151, 166]
     results = []
 
-    await ClockCycles(dut.clk, 1)  # Wait for systolic array to compute
+    await ClockCycles(dut.clk, 3)  # Wait for systolic array to compute
     
     results = await read_output(dut)
 

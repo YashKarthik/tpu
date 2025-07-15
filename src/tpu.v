@@ -23,7 +23,7 @@ module tt_um_tpu (
     wire [2:0] mem_addr; // 3-bit address for matrix and element selection
     reg mem_load_mat;
 
-    wire [3:0] compute_cycles;
+    wire [2:0] mmu_cycle;
 
     wire [7:0] weight0, weight1, weight2, weight3;
     wire [7:0] input0, input1, input2, input3;
@@ -54,7 +54,7 @@ module tt_um_tpu (
         .mem_load_mat(mem_load_mat),
         .mem_addr(mem_addr),
         .mmu_en(compute_en),
-        .mmu_cycle(compute_cycles),
+        .mmu_cycle(mmu_cycle),
         .output_select(output_sel)
     );
 
@@ -76,7 +76,7 @@ module tt_um_tpu (
         .clk(clk),
         .rst(~rst_n),
         .en(compute_en),
-        .compute_cycles(compute_cycles),
+        .mmu_cycle(mmu_cycle),
         .output_sel(output_sel),
         .weight0(weight0), .weight1(weight1), .weight2(weight2), .weight3(weight3),
         .input0(input0), .input1(input1), .input2(input2), .input3(input3),

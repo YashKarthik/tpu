@@ -11,7 +11,7 @@ module control_unit (
 
     // MMU feeding control
     output reg mmu_en,
-    output reg [3:0] mmu_cycle, // Renamed from mmu_cycle, adjusted to 3 bits
+    output reg [2:0] mmu_cycle, // Renamed from mmu_cycle, adjusted to 3 bits
 	output wire [1:0] output_select
 );
 
@@ -52,7 +52,7 @@ module control_unit (
             end
             
             S_MMU_FEED_COMPUTE_WB: begin
-                if (mmu_cycle == 4'b1000) begin
+                if (mmu_cycle == 3'b101) begin
                     next_state = S_IDLE;
                 end
             end
@@ -99,12 +99,7 @@ module control_unit (
 
                     if (mat_elems_loaded == 3'b111) begin 
                         mat_elems_loaded <= 0;
-						mmu_cycle <= mmu_cycle + 1;
-					end else if(mat_elems_loaded == 3'b110) begin
-						if (mmu_en)
-							mmu_cycle <= mmu_cycle + 1;
-						else
-							mmu_en <= 1;
+						mmu_en <= 1;
 					end
                 end
 
