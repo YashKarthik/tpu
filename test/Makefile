@@ -44,6 +44,7 @@ test-feeder:
 		MODULE=test_mmu_feeder \
 		TOPLEVEL=tb \
 		VERILOG_SOURCES=$(TEST_MMU_FEEDER_SOURCES) \
+		VERILOG_SOURCES+=$(SRC_DIR)/mmu_feeder.v \
 		PYTHONPATH=$(PWD)/mmu_feeder \
 		WAVES_DIR=$(PWD)/mmu_feeder/wave \
 		COMPILE_ARGS=-I$(SRC_DIR) \

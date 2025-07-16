@@ -52,30 +52,38 @@ async def test_project(dut):
     dut.weight_1.value = W[1]
     dut.weight_2.value = W[2]
 
+    dut.c_0.value = I[0] * W[0]  # Set c_0 value (data ready from mmu)
+
     await RisingEdge(dut.clk)
 
     # ------------------------------
     # CYCLE 2: c00 = a00xb00 ready, c00 outputted
     dut.mmu_cycles.value = 2
 
-    dut.c_0.value = I[0] * W[0]  # Set c_0 value (data ready from mmu)
     dut._log.info(f"Cycle 2: c00 = {dut.c_0.value.integer}")
     dut.input_3.value = I[3]
     dut.weight_3.value = W[3]
 
-    await RisingEdge(dut.clk)
+    dut.c_1.value = I[1] * W[1]  # Set c_1 value (data ready from mmu)
+    dut.c_2.value = I[2] * W[2] # Set c_2 value (data ready from mmu -> output_buf)
 
+    await RisingEdge(dut.clk)
+    await RisingEdge(dut.clk) # for latching (wait for c_0 to be stable)
+
+    # dut._log.info(f"Cycle 3: host_outdata = {dut.host_outdata.value.integer}")
     R.insert(0,dut.host_outdata.value.integer)  # Store host_ output (c00 outputted)
 
     # ------------------------------
     # CYCLE 3: c01 = a00xb01 ready, c10 = a10xb00 ready, c01 outputted
     dut.mmu_cycles.value = 3
+    await RisingEdge(dut.clk) # for latching (wait for c_1 & c_2 to be stable)
 
-    dut.c_1.value = I[1] * W[1]  # Set c_1 value (data ready from mmu)
     dut._log.info(f"Cycle 3: c01 = {dut.c_1.value.integer}")
-    dut.c_2.value = I[2] * W[2] # Set c_2 value (data ready from mmu -> output_buf)
+
+    dut.c_3.value = I[3] * W[3]  # Set c_3 value (data ready from mmu -> output_buf)
 
     await RisingEdge(dut.clk)
+    await RisingEdge(dut.clk) # for latching (wait for c_1 to be stable)
 
     R.insert(1, dut.host_outdata.value.integer)  # Store host_ output (c01 outputted)
     
@@ -83,10 +91,10 @@ async def test_project(dut):
     # CYCLE 4: c11 = a10xb01 ready, c10 outputted
     dut.mmu_cycles.value = 4
 
-    dut.c_3.value = I[3] * W[3]  # Set c_3 value (data ready from mmu -> output_buf)
     dut._log.info(f"Cycle 4: c10 = {dut.c_2.value.integer}")
 
     await RisingEdge(dut.clk)
+    await RisingEdge(dut.clk) # for latching (wait for c_2 to be stable)
 
     R.insert(2, dut.host_outdata.value.integer)  # Store host_ output (c10 outputted)
 
@@ -97,6 +105,7 @@ async def test_project(dut):
     dut._log.info(f"Cycle 5: c11 = {dut.c_3.value.integer}")
 
     await RisingEdge(dut.clk)
+    await RisingEdge(dut.clk) # for latching (wait for c_3 to be stable)
 
     R.insert(3, dut.host_outdata.value.integer)  # Store host_ output (c11 outputted)
 
