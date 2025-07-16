@@ -16,7 +16,7 @@ module tt_um_tpu (
     input  wire       rst_n
 );
 
-    wire [7:0] instruction = uio_in;
+    wire instruction = uio_in[0];
 
     wire compute_en; // internal signal
     reg clear; // reset of PEs only
@@ -33,62 +33,60 @@ module tt_um_tpu (
     // Ports of the systolic Array
     wire [7:0] a_data0, b_data0, a_data1, b_data1;
 
-    wire [1:0] output_sel;
     wire done;
 
     // Module Instantiations
-    // memory mem (
-    //     .clk(clk),
-    //     .rst(~rst_n),
-    //     .write_en(mem_load_mat),
-    //     .addr(mem_addr),
-    //     .in_data(ui_in),
-    //     .weight0(weight0), .weight1(weight1), .weight2(weight2), .weight3(weight3),
-    //     .input0(input0), .input1(input1), .input2(input2), .input3(input3)
-    // );
-
-    // control_unit central_ctrl (
-    //     .clk(clk),
-    //     .rst(~rst_n),
-    //     .instrn(instruction),
-    //     .mem_load_mat(mem_load_mat),
-    //     .mem_addr(mem_addr),
-    //     .mmu_en(compute_en),
-    //     .mmu_cycle(mmu_cycle),
-    //     .output_select(output_sel)
-    // );
-
-    // systolic_array_2x2 mmu (
-    //     .clk(clk),
-    //     .rst(~rst_n),
-    //     .clear(clear),
-    //     .a_data0(a_data0),
-    //     .a_data1(a_data1),
-    //     .b_data0(b_data0),
-    //     .b_data1(b_data1),
-    //     .c00(outputs[0]), 
-    //     .c01(outputs[1]), 
-    //     .c10(outputs[2]), 
-    //     .c11(outputs[3])
-    // );
-
-    mmu_feeder compute_ctrl (
+    memory mem (
         .clk(clk),
         .rst(~rst_n),
-        .en(en),
-        .mmu_cycles(mmu_cycles),
-        .weight_0(weight_0), .weight_1(weight_1), .weight_2(weight_2), .weight_3(weight_3),
-        .input_0(input_0), .input_1(input1), .input_2(input_2), .input_3(input_3),
-        .c_0(c_0), 
-        .c_1(c_1), 
-        .c_2(c_2), 
-        .c_3(c_3),
+        .write_en(mem_load_mat),
+        .addr(mem_addr),
+        .in_data(ui_in),
+        .weight0(weight0), .weight1(weight1), .weight2(weight2), .weight3(weight3),
+        .input0(input0), .input1(input1), .input2(input2), .input3(input3)
+    );
+
+    control_unit central_ctrl (
+        .clk(clk),
+        .rst(~rst_n),
+        .instrn(instruction),
+        .mem_load_mat(mem_load_mat),
+        .mem_addr(mem_addr),
+        .mmu_en(compute_en),
+        .mmu_cycle(mmu_cycle)
+    );
+
+    systolic_array_2x2 mmu (
+        .clk(clk),
+        .rst(~rst_n),
         .clear(clear),
         .a_data0(a_data0),
         .a_data1(a_data1),
         .b_data0(b_data0),
         .b_data1(b_data1),
-        .host_mat_wb(host_mat_wb),
+        .c00(outputs[0]), 
+        .c01(outputs[1]), 
+        .c10(outputs[2]), 
+        .c11(outputs[3])
+    );
+
+    mmu_feeder compute_ctrl (
+        .clk(clk),
+        .rst(~rst_n),
+        .en(compute_en),
+        .mmu_cycle(mmu_cycle),
+        .weight0(weight0), .weight1(weight1), .weight2(weight2), .weight3(weight3),
+        .input0(input0), .input1(input1), .input2(input2), .input3(input3),
+        .c00(outputs[0]), 
+        .c01(outputs[1]), 
+        .c10(outputs[2]), 
+        .c11(outputs[3]),
+        .clear(clear),
+        .a_data0(a_data0),
+        .a_data1(a_data1),
+        .b_data0(b_data0),
+        .b_data1(b_data1),
+        .done(done),
         .host_outdata(out_data)
     );
 

@@ -1,38 +1,44 @@
-# test/Makefile
+# Makefile
+# See https://docs.cocotb.org/en/stable/quickstart.html for more info
 
-# Defaults
+# defaults
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
+SRC_DIR = $(PWD)/../src
+PROJECT_SOURCES = tpu.v \
+ 				  	systolic_array_2x2.v \
+					control_unit.v \
+					PE.v \
+					mmu_feeder.v \
+					memory.v
 
-SRC_DIR := $(PWD)/../src
-FEEDER_DIR := $(PWD)/mmu_feeder
-# TPU_DIR := $(PWD)/top_tpu
+ifneq ($(GATES),yes)
 
-# Common flags
-COMPILE_ARGS += -I$(SRC_DIR)
+# RTL simulation:
+SIM_BUILD				= sim_build/rtl
+VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,$(PROJECT_SOURCES))
 
-# Optional gate sim support
-ifeq ($(GATES),yes)
-  SIM_BUILD := sim_build/gl
-  COMPILE_ARGS += -DGL_TEST -DFUNCTIONAL -DSIM
-  VERILOG_GATE_SOURCES := \
-    $(PDK_ROOT)/ihp-sg13g2/libs.ref/sg13g2_io/verilog/sg13g2_io.v \
-    $(PDK_ROOT)/ihp-sg13g2/libs.ref/sg13g2_stdcell/verilog/sg13g2_stdcell.v \
-    $(PWD)/gate_level_netlist.v
 else
-  SIM_BUILD := sim_build/rtl
+
+# Gate level simulation:
+SIM_BUILD				= sim_build/gl
+COMPILE_ARGS    += -DGL_TEST
+COMPILE_ARGS    += -DFUNCTIONAL
+COMPILE_ARGS    += -DSIM
+VERILOG_SOURCES += $(PDK_ROOT)/ihp-sg13g2/libs.ref/sg13g2_io/verilog/sg13g2_io.v
+VERILOG_SOURCES += $(PDK_ROOT)/ihp-sg13g2/libs.ref/sg13g2_stdcell/verilog/sg13g2_stdcell.v
+
+# this gets copied in by the GDS action workflow
+VERILOG_SOURCES += $(PWD)/gate_level_netlist.v
+
 endif
 
-# RTL source lists
-RTL_SOURCES = \
-    $(SRC_DIR)/tpu.v \
-    $(SRC_DIR)/systolic_array_2x2.v \
-    $(SRC_DIR)/control_unit.v \
-    $(SRC_DIR)/PE.v \
-    $(SRC_DIR)/mmu_feeder.v
+# Allow sharing configuration between design and testbench via `include`:
+COMPILE_ARGS 		+= -I$(SRC_DIR)
 
-TEST_MMU_FEEDER_SOURCES = $(PWD)/mmu_feeder/tb_mmu_feeder.v
-# TEST_TPU_SOURCES = $(PWD)/top_tpu/tb.v
+# Include the testbench sources:
+VERILOG_SOURCES += $(PWD)/tb.v
+TOPLEVEL = tb
 
 .PHONY: all test-feeder cleanall
 
@@ -60,6 +66,9 @@ test-feeder:
 # 		WAVES_DIR=$(PWD)/top_tpu/wave \
 # 		COMPILE_ARGS=-I$(SRC_DIR) \
 # 		SIM_BUILD=$(SIM_BUILD)
+
+# MODULE is the basename of the Python test file
+MODULE = test
 
 cleanall:
 	rm -rf sim_build* results.xml __pycache__ *.vcd */*.vcd

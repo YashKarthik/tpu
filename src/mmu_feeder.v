@@ -1,142 +1,144 @@
 `default_nettype none
 
 module mmu_feeder (
-  input wire clk,
-  input wire rst_n,
-  input wire en,
-  input wire [2:0] mmu_cycles,
+    input wire clk,
+    input wire rst,
+    input wire en,
+    input wire [2:0] mmu_cycle,
 
-  /* Memory module interface */
-  input wire [7:0] weight_0,
-  input wire [7:0] weight_1,
-  input wire [7:0] weight_2,
-  input wire [7:0] weight_3,
+    /* Memory module interface */
+    input wire [7:0] weight0, weight1, weight2, weight3,
+    input wire [7:0] input0, input1, input2, input3,
 
-  input wire [7:0] input_0,
-  input wire [7:0] input_1,
-  input wire [7:0] input_2,
-  input wire [7:0] input_3,
+    /* systolic array -> feeder */
+    input wire signed [15:0] c00, c01, c10, c11,
 
-  /*  mmu -> feeder  */
-  input wire [7:0] c_0,
-  input wire [7:0] c_1,
-  input wire [7:0] c_2,
-  input wire [7:0] c_3,
+    /* feeder -> mmu */
+    output reg clear,
+    output reg [7:0] a_data0,
+    output reg [7:0] a_data1,
+    output reg [7:0] b_data0,
+    output reg [7:0] b_data1,
 
-  /*  feeder -> mmu */
-  output reg clear,
-  output reg [7:0] a_data0,
-  output reg [7:0] a_data1,
-  output reg [7:0] b_data0,
-  output reg [7:0] b_data1,
-
-  /*  feeder -> rpi */
-  output wire host_mat_wb,
-  output reg [7:0] host_outdata
+    /* feeder -> rpi */
+    output wire done,
+    output reg [7:0] host_outdata
 );
 
-  reg [7:0] out_buf;
-  assign host_mat_wb = en && (mmu_cycles >= 3'b010) && (mmu_cycles <= 3'b101);
+    wire [7:0] weights [0:3];
+    wire [7:0] inputs [0:3];
+    wire signed [15:0] c_out [0:3];
 
-  always @(posedge clk or negedge rst_n) begin
-    if (!rst_n) begin
-      clear <= 1;
-      a_data0 <= 0;
-      a_data1 <= 0;
-      b_data0 <= 0;
-      b_data1 <= 0;
+    assign weights[0] = weight0;
+    assign weights[1] = weight1;
+    assign weights[2] = weight2;
+    assign weights[3] = weight3;
 
-      host_outdata <= 0;
-    end else begin
+    assign inputs[0] = input0;
+    assign inputs[1] = input1;
+    assign inputs[2] = input2;
+    assign inputs[3] = input3;
 
-    if (en) begin
-      clear <= 0;
-      /* Cycle 0: Start feeding data
-       * Cycle 1: First partial products computed
-       * Cycle 2: c00 outputted; c00 = a00×b00 ready
-       * Cycle 3: c01 outputted; c01 = a00×b01 ready, c10 = a10×b00 ready
-       * Cycle 4: c10 outputted; c11 = a10×b01 ready;
-       * Cycle 5: c11 outputted;
-       * outputting is staggered since only one output per cycle (tt) 
-       * => +1 cycle
-       **/
-      case (mmu_cycles)
-        3'b000: begin
-          a_data0  <= input_0;   
-          a_data1  <= 8'b0;         
-          b_data0  <= weight_0;   
-          b_data1  <= 8'b0;          
+    assign c_out[0] = c00;
+    assign c_out[1] = c01;
+    assign c_out[2] = c10;
+    assign c_out[3] = c11;
 
-          host_outdata <= 0;
+    assign done = en && (mmu_cycle >= 3'b010) && (mmu_cycle <= 3'b101);
+
+    reg [1:0] output_count;
+
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            clear <= 1;
+            a_data0 <= 0;
+            a_data1 <= 0;
+            b_data0 <= 0;
+            b_data1 <= 0;
+            output_count <= 0;
+        end else begin
+            if (en) begin
+                clear <= 0;
+
+                if (mmu_cycle >= 3) begin
+                    output_count <= output_count + 1;
+                end else begin
+                    output_count <= 0;
+                end
+            
+                case (mmu_cycle)
+                    3'b000: begin
+                        a_data0  <= weights[0];   
+                        a_data1  <= 8'b0;         
+                        b_data0  <= inputs[0];   
+                        b_data1  <= 8'b0;
+                        output_count <= 0; 
+                    end
+
+                    3'b001: begin
+                        a_data0  <= weights[1];   
+                        a_data1  <= weights[2];   
+                        b_data0  <= inputs[2];   
+                        b_data1  <= inputs[1];
+                    end
+
+                    3'b010: begin
+                        a_data0  <= 0;         
+                        a_data1  <= weights[3];   
+                        b_data0  <= 0;          
+                        b_data1  <= inputs[3];
+                    end
+
+                    3'b011: begin
+                        a_data0 <= 0;      
+                        a_data1 <= 0;
+                        b_data0 <= 0;       
+                        b_data1 <= 0;  
+                    end
+
+                    3'b100: begin
+                        a_data0 <= 0;      
+                        a_data1 <= 0;
+                        b_data0 <= 0;       
+                        b_data1 <= 0;
+                    end
+
+                    3'b101: begin
+                        a_data0 <= 0;      
+                        a_data1 <= 0;
+                        b_data0 <= 0;       
+                        b_data1 <= 0;
+                    end
+
+                    default: begin
+                        a_data0 <= 8'b0;
+                        a_data1 <= 8'b0;
+                        b_data0 <= 8'b0;
+                        b_data1 <= 8'b0;
+                    end
+                    
+                endcase
+            end else begin
+                clear <= 1;
+                a_data0 <= 0;
+                a_data1 <= 0;
+                b_data0 <= 0;
+                b_data1 <= 0;
+                output_count <= 0;
+            end
         end
-
-        3'b001: begin
-          a_data0  <= input_1;   
-          a_data1  <= input_2;   
-          b_data0  <= weight_2;   
-          b_data1  <= weight_1;   
-
-          host_outdata <= 0;
-        end
-
-        3'b010: begin
-          a_data0  <= 8'b0;         
-          a_data1  <= input_3;   
-          b_data0  <= 8'b0;          
-          b_data1  <= weight_3;   
-
-          host_outdata <= c_0;
-        end
-
-        3'b011: begin
-          a_data0 <= 0;      
-          a_data1 <= 0;
-          b_data0 <= 0;       
-          b_data1 <= 0;   
-
-          host_outdata <= c_1;
-          out_buf <= c_2;
-        end
-
-        3'b100: begin
-          a_data0 <= 0;      
-          a_data1 <= 0;
-          b_data0 <= 0;       
-          b_data1 <= 0;   
-
-          host_outdata <= c_2;
-          out_buf <= c_3;
-        end
-
-        3'b101: begin
-          a_data0 <= 0;      
-          a_data1 <= 0;
-          b_data0 <= 0;       
-          b_data1 <= 0;   
-
-          host_outdata <= c_3;
-          out_buf <= 0;
-        end
-
-        default: begin
-          a_data0 <= 8'b0;
-          a_data1 <= 8'b0;
-          b_data0 <= 8'b0;
-          b_data1 <= 8'b0;
-          
-          host_outdata <= 0;
-          out_buf <= 0;
-        end
-      endcase
-
-    end else begin
-        clear <= 1;
-        a_data0 <= 0;
-        a_data1 <= 0;
-        b_data0 <= 0;
-        b_data1 <= 0;
-      end
     end
-  end
+
+    always @(*) begin
+        host_outdata <= 0;
+        if (en) begin
+            if (c_out[output_count] > 127)
+                host_outdata <= 8'sd127;
+            else if (c_out[output_count] < -128)
+                host_outdata <= -8'sd128;
+            else
+                host_outdata <= c_out[output_count][7:0];
+        end
+    end
 
 endmodule
