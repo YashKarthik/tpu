@@ -6,26 +6,26 @@
 */
 module tb (
   input logic clk,
-  input logic rst_n,
+  input logic rst,
   input logic en,
-  input logic [2:0] mmu_cycles,
+  input logic [2:0] mmu_cycle,
 
   /* Memory module interface */
-  input logic [7:0] weight_0,
-  input logic [7:0] weight_1,
-  input logic [7:0] weight_2,
-  input logic [7:0] weight_3,
+  input logic [7:0] weight0,
+  input logic [7:0] weight1,
+  input logic [7:0] weight2,
+  input logic [7:0] weight3,
 
-  input logic [7:0] input_0,
-  input logic [7:0] input_1,
-  input logic [7:0] input_2,
-  input logic [7:0] input_3,
+  input logic [7:0] input0,
+  input logic [7:0] input1,
+  input logic [7:0] input2,
+  input logic [7:0] input3,
 
   /*  mmu -> feeder  */
-  input logic [7:0] c_0,
-  input logic [7:0] c_1,
-  input logic [7:0] c_2,
-  input logic [7:0] c_3,
+  input logic signed [15:0] c00,
+  input logic signed [15:0] c01,
+  input logic signed [15:0] c10,
+  input logic signed [15:0] c11,
 
   /*  feeder -> mmu */
   output logic clear,
@@ -35,7 +35,7 @@ module tb (
   output logic [7:0] b_data1,
 
   /*  feeder -> rpi */
-  output logic host_mat_wb,
+  output logic done,
   output logic [7:0] host_outdata
 );
 
@@ -49,24 +49,24 @@ module tb (
   // Instantiate the MMU feeder module
   mmu_feeder dut (
     .clk(clk),
-    .rst_n(rst_n),
+    .rst(rst),
     .en(en),
-    .mmu_cycles(mmu_cycles),
+    .mmu_cycle(mmu_cycle),
 
-    .weight_0(weight_0),
-    .weight_1(weight_1),
-    .weight_2(weight_2),
-    .weight_3(weight_3),
+    .weight0(weight0),
+    .weight1(weight1),
+    .weight2(weight2),
+    .weight3(weight3),
 
-    .input_0(input_0),
-    .input_1(input_1),
-    .input_2(input_2),
-    .input_3(input_3),
+    .input0(input0),
+    .input1(input1),
+    .input2(input2),
+    .input3(input3),
 
-    .c_0(c_0),
-    .c_1(c_1),
-    .c_2(c_2),
-    .c_3(c_3),
+    .c00(c00),
+    .c01(c01),
+    .c10(c10),
+    .c11(c11),
 
     .clear(clear),
     .a_data0(a_data0),
@@ -74,7 +74,7 @@ module tb (
     .b_data0(b_data0),
     .b_data1(b_data1),
 
-    .host_mat_wb(host_mat_wb),
+    .done(done),
     .host_outdata(host_outdata)
   );
 

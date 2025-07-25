@@ -5,12 +5,16 @@
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
-PROJECT_SOURCES = tpu.v \
- 				  	systolic_array_2x2.v \
-					control_unit.v \
-					PE.v \
-					mmu_feeder.v \
-					memory.v
+PROJECT_SOURCES =	$(SRC_DIR)/tpu.v \
+ 				  	$(SRC_DIR)/systolic_array_2x2.v \
+					$(SRC_DIR)/control_unit.v \
+					$(SRC_DIR)/PE.v \
+					$(SRC_DIR)/mmu_feeder.v \
+					$(SRC_DIR)/memory.v
+
+TEST_TPU_SOURCES = $(PWD)/top_tpu/tb.v
+TEST_MMU_FEEDER_SOURCES = $(PWD)/mmu_feeder/tb_mmu_feeder.v
+
 
 ifneq ($(GATES),yes)
 
@@ -21,7 +25,7 @@ VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,$(PROJECT_SOURCES))
 else
 
 # Gate level simulation:
-SIM_BUILD				= sim_build/gl
+SIM_BUILD		= sim_build/gl
 COMPILE_ARGS    += -DGL_TEST
 COMPILE_ARGS    += -DFUNCTIONAL
 COMPILE_ARGS    += -DSIM
@@ -36,13 +40,9 @@ endif
 # Allow sharing configuration between design and testbench via `include`:
 COMPILE_ARGS 		+= -I$(SRC_DIR)
 
-# Include the testbench sources:
-VERILOG_SOURCES += $(PWD)/tb.v
-TOPLEVEL = tb
+.PHONY: all test-feeder test-tpu cleanall
 
-.PHONY: all test-feeder cleanall
-
-all: test-feeder
+all: test-feeder test-tpu
 
 test-feeder:
 	$(MAKE) clean
@@ -56,19 +56,17 @@ test-feeder:
 		COMPILE_ARGS=-I$(SRC_DIR) \
 		SIM_BUILD=$(SIM_BUILD)
 
-# test-tpu:
-# 	$(MAKE) clean
-# 	$(MAKE) sim \
-# 		MODULE=test \
-# 		TOPLEVEL=tb \
-# 		VERILOG_SOURCES="$(TEST_TPU_SOURCES) $(RTL_SOURCES)" \
-# 		PYTHONPATH=$(PWD)/top_tpu \
-# 		WAVES_DIR=$(PWD)/top_tpu/wave \
-# 		COMPILE_ARGS=-I$(SRC_DIR) \
-# 		SIM_BUILD=$(SIM_BUILD)
-
-# MODULE is the basename of the Python test file
-MODULE = test
+test-tpu:
+	$(MAKE) clean
+	$(MAKE) sim \
+		MODULE=test \
+		TOPLEVEL=tb \
+		VERILOG_SOURCES=$(PROJECT_SOURCES) \
+		VERILOG_SOURCES+=$(TEST_TPU_SOURCES) \
+		PYTHONPATH=$(PWD)/top_tpu \
+		WAVES_DIR=$(PWD)/top_tpu/wave \
+		COMPILE_ARGS=-I$(SRC_DIR) \
+		SIM_BUILD=$(SIM_BUILD)
 
 cleanall:
 	rm -rf sim_build* results.xml __pycache__ *.vcd */*.vcd

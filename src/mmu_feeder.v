@@ -60,7 +60,7 @@ module mmu_feeder (
             if (en) begin
                 clear <= 0;
 
-                if (mmu_cycle >= 3) begin
+                if (mmu_cycle >= 2) begin
                     output_count <= output_count + 1;
                 end else begin
                     output_count <= 0;
